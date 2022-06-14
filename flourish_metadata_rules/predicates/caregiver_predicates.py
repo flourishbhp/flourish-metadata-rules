@@ -275,11 +275,11 @@ class CaregiverPredicates(PredicateCollection):
         ultrasound_model = 'ultrasound'
         maternal_status_helper = maternal_status_helper or MaternalStatusHelper(
             visit)
-        prev_tb_study_screening = Reference.objects.filter(
-            model=f'{self.app_label}.tbstudyscreening',
-            report_datetime__lt=visit.report_datetime,
-            identifier=visit.subject_identifier).order_by(
-            '-report_datetime').last()
+        prev_tb_study_screening = self.exists(
+            reference_name=f'{self.app_label}.tbstudyeligibility',
+            subject_identifier=visit.subject_identifier,
+            field_name='tb_participation',
+            value=YES)
         consent_model_cls = django_apps.get_model(f'flourish_caregiver.{consent_model}')
         ultrasound_model_cls = django_apps.get_model(
             f'flourish_caregiver.{ultrasound_model}')
@@ -295,7 +295,7 @@ class CaregiverPredicates(PredicateCollection):
         except tb_consent_model_cls.DoesNotExist:
             if (consent_obj and get_difference(consent_obj[0].dob)
                     >= 18 and maternal_status_helper.hiv_status == POS and
-                    consent_obj[0].citizen == YES and not prev_tb_study_screening):
+                    consent_obj[0].citizen == YES and len(prev_tb_study_screening) == 0):
                 for child_subj in child_subjects:
                     try:
                         ultrasound_obj = ultrasound_model_cls.objects.get(
@@ -306,7 +306,7 @@ class CaregiverPredicates(PredicateCollection):
                         if child_consent.child_dob:
                             child_age = age(child_consent.child_dob, get_utcnow())
                             child_age_in_months = (
-                                                              child_age.years * 12) + child_age.months
+                                                          child_age.years * 12) + child_age.months
                             if child_age_in_months < 2:
                                 return True
                         else:
