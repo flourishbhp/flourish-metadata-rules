@@ -1,7 +1,7 @@
 from edc_metadata import NOT_REQUIRED, REQUIRED
 from edc_metadata_rules import RequisitionRule, RequisitionRuleGroup, register
 
-from flourish_labs.caregiver_panels import viral_load_panel, cd4_panel
+from flourish_labs.caregiver_panels import viral_load_panel
 from ....predicates import CaregiverPredicates
 
 app_label = 'flourish_caregiver'

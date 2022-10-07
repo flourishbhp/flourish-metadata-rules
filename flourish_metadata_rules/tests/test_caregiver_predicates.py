@@ -11,7 +11,7 @@ from .models import HivRapidTestCounseling, MaternalVisit, Appointment, \
     CaregiverChildConsent
 from .models import MaternalDataset, AntenatalEnrollment, CyhuuPreEnrollment, \
     SubjectConsent
-from .models import ScreeningPriorBhpParticipants
+from .models import ScreeningPriorBhpParticipants, RelationshipFatherInvolvement
 from ..predicates import CaregiverPredicates
 
 
@@ -47,6 +47,9 @@ class TestMaternalPredicates(SiteTestCaseMixin, TestCase):
         self.reference_helper.create_visit(
             report_datetime=report_datetime + relativedelta(days=3),
             timepoint='3000M')
+        self.reference_helper.create_visit(
+            report_datetime=report_datetime + relativedelta(days=2),
+            timepoint='2002M')
         import_holidays()
 
     def test_func_preg_no_prior_participation(self):
@@ -87,7 +90,7 @@ class TestMaternalPredicates(SiteTestCaseMixin, TestCase):
 
         self.assertTrue(
             pc.func_bio_mothers_hiv_cohort_a(self.maternal_visits[1], ))
-
+    
     def test_func_bio_mothers_hiv(self):
         pc = CaregiverPredicates()
         pc.app_label = self.app_label
@@ -165,6 +168,76 @@ class TestMaternalPredicates(SiteTestCaseMixin, TestCase):
 
         self.assertTrue(
             pc.func_LWHIV_aged_10_15a(self.maternal_visits[0], ))
+        
+      
+    def test_func_b_feeding(self):
+        pc = CaregiverPredicates()
+        pc.app_label = self.app_label
+        
+        AntenatalEnrollment.objects.create(subject_identifier=self.subject_identifier)
+        self.assertTrue(pc.func_show_b_feeding_form(self.maternal_visits[2], ))
+    
+    @tag('bio_mothers')    
+    def test_func_show_hiv_test_form(self):
+        pc = CaregiverPredicates()
+        pc.app_label = self.app_label
+        pc.pre_app_label = self.app_label
+
+        MaternalDataset.objects.create(subject_identifier=self.subject_identifier)
+        ScreeningPriorBhpParticipants.objects.create(
+            screening_identifier=self.screening_identifier,
+            flourish_participation='interested')
+        SubjectConsent.objects.create(subject_identifier=self.subject_identifier,
+                                      screening_identifier=self.screening_identifier,
+                                      biological_caregiver=YES)
+        
+        appointment = Appointment.objects.create(
+            subject_identifier=self.subject_identifier)
+
+        maternal_visit = MaternalVisit.objects.create(
+            appointment=appointment,
+            subject_identifier=self.subject_identifier)
+        CyhuuPreEnrollment.objects.create(maternal_visit=maternal_visit,
+                                          biological_mother=YES)
+        
+        HivRapidTestCounseling.objects.create(maternal_visit=maternal_visit,
+                                              subject_identifier=self.subject_identifier,
+                                              result=NEG)
+
+        self.assertTrue(
+            pc.func_show_hiv_test_form(visit=self.maternal_visits[0], )) 
+           
+    @tag('sfi')    
+    def test_func_show_father_involvement(self):
+        pc = CaregiverPredicates()
+        pc.app_label = self.app_label
+        
+        MaternalDataset.objects.create(subject_identifier=self.subject_identifier)
+        ScreeningPriorBhpParticipants.objects.create(
+            screening_identifier=self.screening_identifier,
+            flourish_participation='interested')
+        
+        SubjectConsent.objects.create(subject_identifier=self.subject_identifier,
+                                      screening_identifier=self.screening_identifier,
+                                      biological_caregiver=YES)
+        
+        appointment = Appointment.objects.create(
+            subject_identifier=self.subject_identifier)
+        
+        maternal_visit = MaternalVisit.objects.create(
+            appointment=appointment,
+            subject_identifier=self.subject_identifier)
+        HivRapidTestCounseling.objects.create(maternal_visit=maternal_visit,
+                                              subject_identifier=self.subject_identifier,
+                                              result=POS)
+        
+        RelationshipFatherInvolvement.objects.create(maternal_visit=maternal_visit,
+                                              subject_identifier=self.subject_identifier,
+                                              partner_present=YES)
+        
+        
+        self.assertTrue(
+            pc.func_show_father_involvement(visit=self.maternal_visits[1], )) 
 
     @property
     def maternal_visits(self):

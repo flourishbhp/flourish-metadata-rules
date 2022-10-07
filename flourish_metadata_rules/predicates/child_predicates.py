@@ -1,11 +1,11 @@
+from flourish_caregiver.helper_classes import MaternalStatusHelper
+
 from dateutil.relativedelta import relativedelta
 from django.apps import apps as django_apps
 from edc_base.utils import age, get_utcnow
 from edc_constants.constants import FEMALE, YES, POS, NEG
 from edc_metadata_rules import PredicateCollection
 from edc_reference.models import Reference
-
-from flourish_caregiver.helper_classes import MaternalStatusHelper
 
 
 class UrlMixinNoReverseMatch(Exception):
@@ -28,11 +28,12 @@ class ChildPredicates(PredicateCollection):
         Get the pregnancy status of the mother, is positive it means
         the child was exposed to HIV
         """
-        child_subject_identifier = visit.subject_identifier
-        caregiver_subject_identifier = child_subject_identifier[0:16]
-        maternal_status_helper = MaternalStatusHelper(
-            subject_identifier=caregiver_subject_identifier)
-        return maternal_status_helper.hiv_status == POS
+        if visit.visit_code_sequence == 0:
+            child_subject_identifier = visit.subject_identifier
+            caregiver_subject_identifier = child_subject_identifier[0:16]
+            maternal_status_helper = MaternalStatusHelper(
+                subject_identifier=caregiver_subject_identifier)
+            return maternal_status_helper.hiv_status == POS
 
     def get_latest_maternal_hiv_status(self, visit=None):
         maternal_subject_id = visit.subject_identifier[:-3]
@@ -68,17 +69,35 @@ class ChildPredicates(PredicateCollection):
                 return True
         return False
 
+    def version_2_1(self, visit=None, **kwargs):
+
+        """
+        Returns true if the participant is enrolled under version 2.1 and is a delivery visit
+        """
+        caregiver_child_consent_cls = django_apps.get_model(
+                f'{self.maternal_app_label}.caregiverchildconsent')
+        try:
+            caregiver_child_consent_cls.objects.get(
+                subject_identifier=visit.subject_identifier,
+                version='2.1')
+        except caregiver_child_consent_cls.DoesNotExist:
+            return False
+        else:
+            return visit.visit_code == '2000D' and visit.visit_code_sequence == 0
+
     def get_child_age(self, visit=None, **kwargs):
         """Returns child age
         """
-        if not self.mother_pregnant(visit=visit):
-            caregiver_child_consent_cls = django_apps.get_model(
-                f'{self.maternal_app_label}.caregiverchildconsent')
-            consents = caregiver_child_consent_cls.objects.filter(
-                subject_identifier=visit.subject_identifier)
-            if consents:
-                caregiver_child_consent = consents.latest('consent_datetime')
-                return age(caregiver_child_consent.child_dob, visit.report_datetime)
+
+        caregiver_child_consent_cls = django_apps.get_model(
+            f'{self.maternal_app_label}.caregiverchildconsent')
+
+        consents = caregiver_child_consent_cls.objects.filter(
+            subject_identifier=visit.subject_identifier)
+
+        if consents:
+            caregiver_child_consent = consents.latest('consent_datetime')
+            return age(caregiver_child_consent.child_dob, visit.report_datetime)
 
     def child_age_at_enrolment(self, visit):
         if not self.mother_pregnant(visit=visit) \
@@ -296,33 +315,24 @@ class ChildPredicates(PredicateCollection):
         Returns true if the visit is the 4th annual quarterly call
         """
         child_age = self.get_child_age(visit=visit)
+
         caregiver_child_consent_cls = django_apps.get_model(
             f'{self.maternal_app_label}.caregiverchildconsent')
+
         consents = caregiver_child_consent_cls.objects.filter(
             subject_identifier=visit.subject_identifier)
-        model = f'{self.app_label}.childfoodsecurityquestionnaire'
+
         if child_age.years >= 3 and consents:
+
             caregiver_child_consent = consents.latest('consent_datetime')
+
             child_is_three_at_date = caregiver_child_consent.child_dob + relativedelta(
                 years=3, months=0)
-            if visit.report_datetime.date() >= child_is_three_at_date:
-                previous_visit = Reference.objects.filter(
-                    model=f'{self.app_label}.childvisit',
-                    identifier=visit.appointment.subject_identifier,
-                    report_datetime__lte=visit.report_datetime).order_by(
-                    '-report_datetime').count()
-                previous_food_sec = Reference.objects.filter(
-                    model=model,
-                    identifier=visit.appointment.subject_identifier).order_by(
-                    '-report_datetime').first()
 
-                if self.previous_model(visit=visit, model=model):
-                    if (int(previous_food_sec.timepoint) - int(
-                            visit.visit_code)) % 4 == 0:
-                        return True
-                elif not self.previous_model(visit=visit,
-                                             model=model) and 0 < previous_visit:
-                    return True
+            if visit.report_datetime.date() >= child_is_three_at_date:
+
+                return int(visit.visit_code[:4]) % 4 == 0
+
         return False
 
     def func_2000D(self, visit, **kwargs):
@@ -331,6 +341,5 @@ class ChildPredicates(PredicateCollection):
         Returns True if visit is 2000D
 
         """
-        
-        return visit.visit_code == '2000D'
 
+        return visit.visit_code == '2000D' and visit.visit_code_sequence == 0

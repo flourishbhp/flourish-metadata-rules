@@ -127,3 +127,11 @@ class HivRapidTestCounseling(BaseUuidModel):
     subject_identifier = models.CharField(max_length=25)
 
     result = models.CharField(max_length=3)
+class RelationshipFatherInvolvement(BaseUuidModel):
+
+    maternal_visit = models.ForeignKey(MaternalVisit,
+                                       on_delete=PROTECT)
+
+    subject_identifier = models.CharField(max_length=25)
+
+    partner_present = models.CharField(max_length=3)
