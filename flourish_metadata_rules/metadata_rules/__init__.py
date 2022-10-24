@@ -4,6 +4,7 @@ from .caregiver_rule_groups import MaternalVisitReqRuleGroup
 from .caregiver_rule_groups import MaternalVisitRuleGroup
 from .caregiver_rule_groups import PHQ9DeprScreeningRuleGroup
 from .caregiver_rule_groups import TbEngagementRuleGroup
+from .caregiver_rule_groups import TbInterviewRuleGroup
 from .caregiver_rule_groups import TbScheduleRuleGroup
 from .caregiver_rule_groups import UltrasoundRuleGroup
 from .child_rule_groups import ChildGAD7AnxietyScreeningRuleGroup
