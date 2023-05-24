@@ -12,3 +12,4 @@ from .tb_adolescent_rules import HivTestingAdolRuleGroup
 from .tb_adolescent_rules import TbLabResultsAdolRuleGroup
 from .tb_adolescent_rules import TbPresenceHouseholdMembersAdolRuleGroup
 from .tb_adolescent_rules import TbVisitScreeningAdolRuleGroup
+from .infant_hiv_test_rules import InfantHIVTestRuleGroup
