@@ -499,7 +499,8 @@ class ChildPredicates(PredicateCollection):
 
     def func_hiv_infant_testing(self, visit=None, **kwargs):
         """Returns true if the visit is 2001, 2002, 2003 and the caregiver
-         is newly enrolled women living with HIV
+         is newly enrolled women living with HIV or final
+         HIV test for infant is not received 6 weeks after weaning
         """
         child_subject_identifier = visit.subject_identifier
         caregiver_subject_identifier = child_subject_identifier[:-3]
@@ -526,13 +527,10 @@ class ChildPredicates(PredicateCollection):
             if infant_feeding_crf.dt_weaned:
                 hiv_test = self.infant_hiv_test_model_cls.objects.filter(
                     child_visit__subject_identifier=child_subject_identifier,
-                    test_date__gte=infant_feeding_crf.dt_weaned + timedelta(weeks=6)
+                    received_date__gte=infant_feeding_crf.dt_weaned + timedelta(weeks=6)
                 ).first()
 
-            valid_infant_eligibility = (
-                    infant_feeding_crf.continuing_to_bf == YES
-                    or (infant_feeding_crf.continuing_to_bf == NO and hiv_test)
-            )
+            valid_infant_eligibility = (infant_feeding_crf.continuing_to_bf == YES or
+                                        (infant_feeding_crf.continuing_to_bf == NO and hiv_test is None))
 
         return valid_visit_and_caregiver or valid_infant_eligibility
-
