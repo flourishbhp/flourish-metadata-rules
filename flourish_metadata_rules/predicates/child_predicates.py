@@ -508,8 +508,8 @@ class ChildPredicates(PredicateCollection):
 
         # Get infant feeding CRF
         infant_feeding_crf = self.infant_feeding_model_cls.objects.filter(
-            child_visit__subject_identifier=child_subject_identifier,
-            child_visit__visit_code=visit.visit_code).first()
+            child_visit__subject_identifier=child_subject_identifier
+        ).order_by('-report_datetime').first()
 
         # Validate visit and caregiver
         valid_visit_and_caregiver = (
