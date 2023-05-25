@@ -516,7 +516,7 @@ class ChildPredicates(PredicateCollection):
                 maternal_status_helper.hiv_status == POS
                 and self.newly_enrolled(visit=visit)
                 and visit.visit_code in [
-                    '2001', '2003'])
+                    '2001', '2002', '2003'])
 
         valid_infant_eligibility = False
 
