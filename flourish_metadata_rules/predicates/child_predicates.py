@@ -516,21 +516,20 @@ class ChildPredicates(PredicateCollection):
                 maternal_status_helper.hiv_status == POS
                 and self.newly_enrolled(visit=visit)
                 and visit.visit_code in [
-                    '2001', '2002', '2003'])
+                    '2001', '2003'])
 
-        # Initialize valid_infant_eligibility as False
         valid_infant_eligibility = False
 
         # Validate infant eligibility
         if infant_feeding_crf:
-            hiv_test = None
+            hiv_test_6wks_post_wean = None
             if infant_feeding_crf.dt_weaned:
-                hiv_test = self.infant_hiv_test_model_cls.objects.filter(
+                hiv_test_6wks_post_wean = self.infant_hiv_test_model_cls.objects.filter(
                     child_visit__subject_identifier=child_subject_identifier,
                     received_date__gte=infant_feeding_crf.dt_weaned + timedelta(weeks=6)
                 ).first()
 
             valid_infant_eligibility = (infant_feeding_crf.continuing_to_bf == YES or
-                                        (infant_feeding_crf.continuing_to_bf == NO and hiv_test is None))
+                                        (infant_feeding_crf.continuing_to_bf == NO and hiv_test_6wks_post_wean is None))
 
         return valid_visit_and_caregiver or valid_infant_eligibility
