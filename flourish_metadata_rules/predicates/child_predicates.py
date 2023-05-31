@@ -519,7 +519,7 @@ class ChildPredicates(PredicateCollection):
         valid_visit_and_caregiver = (
                 maternal_status_helper.hiv_status == POS
                 and self.newly_enrolled(visit=visit)
-                or visit.visit_code in [
+                and visit.visit_code in [
                     '2001', '2002', '2003']
         )
 
