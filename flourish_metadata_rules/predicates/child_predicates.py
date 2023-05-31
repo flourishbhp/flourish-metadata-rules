@@ -498,7 +498,7 @@ class ChildPredicates(PredicateCollection):
             return True
 
     def func_hiv_infant_testing(self, visit=None, **kwargs):
-        """Returns true if the visit is 2001, 2002, 2003 and the caregiver
+        """Returns true if the visit is 2001, 2003 and the caregiver
          is newly enrolled women living with HIV or final
          HIV test for infant is not received 6 weeks after weaning
         """
@@ -506,17 +506,27 @@ class ChildPredicates(PredicateCollection):
         caregiver_subject_identifier = child_subject_identifier[:-3]
         maternal_status_helper = MaternalStatusHelper(subject_identifier=caregiver_subject_identifier)
 
-        # Get infant feeding CRF
-        infant_feeding_crf = self.infant_feeding_model_cls.objects.filter(
-            child_visit__subject_identifier=child_subject_identifier
-        ).order_by('-report_datetime').first()
+        hiv_test_for_2001 = self.infant_hiv_test_model_cls.objects.filter(
+            child_visit__subject_identifier=child_subject_identifier,
+            child_visit__visit_code='2001'
+        ).first()
+
+        # If the child was tested for HIV in 2001, hide crf for 2002
+        if hiv_test_for_2001 and hiv_test_for_2001.child_tested_for_hiv == YES and visit.visit_code == '2002':
+            return False
 
         # Validate visit and caregiver
         valid_visit_and_caregiver = (
                 maternal_status_helper.hiv_status == POS
                 and self.newly_enrolled(visit=visit)
-                and visit.visit_code in [
-                    '2001', '2002', '2003'])
+                or visit.visit_code in [
+                    '2001', '2002', '2003']
+        )
+
+        # Get infant feeding CRF
+        infant_feeding_crf = self.infant_feeding_model_cls.objects.filter(
+            child_visit__subject_identifier=child_subject_identifier
+        ).order_by('-report_datetime').first()
 
         valid_infant_eligibility = False
 
