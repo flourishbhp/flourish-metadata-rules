@@ -506,14 +506,14 @@ class ChildPredicates(PredicateCollection):
         caregiver_subject_identifier = child_subject_identifier[:-3]
         maternal_status_helper = MaternalStatusHelper(subject_identifier=caregiver_subject_identifier)
 
-        hiv_test_for_2001 = self.infant_hiv_test_model_cls.objects.filter(
+        hiv_tested_in_2001 = self.infant_hiv_test_model_cls.objects.filter(
             child_visit__subject_identifier=child_subject_identifier,
             child_visit__visit_code='2001',
             child_tested_for_hiv=YES
         ).exists()
 
         # If the child was tested for HIV in 2001, hide crf for 2002
-        if hiv_test_for_2001 and visit.visit_code == '2002':
+        if hiv_tested_in_2001 and visit.visit_code == '2002':
             return False
 
         # Validate visit and caregiver
