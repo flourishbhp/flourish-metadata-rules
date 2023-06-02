@@ -498,9 +498,13 @@ class ChildPredicates(PredicateCollection):
             return True
 
     def func_hiv_infant_testing(self, visit=None, **kwargs):
-        """Returns true if the visit is 2001, 2003 and the caregiver
-         is newly enrolled women living with HIV or final
-         HIV test for infant is not received 6 weeks after weaning
+        """
+        Returns True under the following conditions:
+        - The visit code is 2001 or 2003, and the caregiver is a newly enrolled woman living with HIV.
+        - The visit code is 2002 and the child hasn't been tested for HIV in the 2001 visit.
+        - The child is still breastfeeding.
+        - The child has stopped breastfeeding and the final HIV test for the infant has not been received 6 weeks after weaning.
+        If none of these conditions are met, the function returns False.
         """
         child_subject_identifier = visit.subject_identifier
         caregiver_subject_identifier = child_subject_identifier[:-3]
