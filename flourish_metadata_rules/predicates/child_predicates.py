@@ -506,41 +506,36 @@ class ChildPredicates(PredicateCollection):
         caregiver_subject_identifier = child_subject_identifier[:-3]
         maternal_status_helper = MaternalStatusHelper(subject_identifier=caregiver_subject_identifier)
 
+        infant_feeding_crf = self.infant_feeding_model_cls.objects.filter(
+            child_visit__subject_identifier=child_subject_identifier
+        ).order_by('-report_datetime').first()
+
         hiv_tested_in_2001 = self.infant_hiv_test_model_cls.objects.filter(
             child_visit__subject_identifier=child_subject_identifier,
             child_visit__visit_code='2001',
             child_tested_for_hiv=YES
         ).exists()
 
-        # If the child was tested for HIV in 2001, hide crf for 2002
-        if hiv_tested_in_2001 and visit.visit_code == '2002':
-            return False
+        hiv_test_6wks_post_wean = None
 
-        # Validate visit and caregiver
-        valid_visit_and_caregiver = (
-                maternal_status_helper.hiv_status == POS
-                and self.newly_enrolled(visit=visit)
-                and visit.visit_code in [
-                    '2001', '2002', '2003']
-        )
+        if infant_feeding_crf and infant_feeding_crf.dt_weaned:
+            hiv_test_6wks_post_wean = self.infant_hiv_test_model_cls.objects.filter(
+                child_visit__subject_identifier=child_subject_identifier,
+                received_date__gte=infant_feeding_crf.dt_weaned + timedelta(weeks=6)
+            ).exists()
 
-        # Get infant feeding CRF
-        infant_feeding_crf = self.infant_feeding_model_cls.objects.filter(
-            child_visit__subject_identifier=child_subject_identifier
-        ).order_by('-report_datetime').first()
+        if maternal_status_helper.hiv_status == POS \
+                and self.newly_enrolled(visit=visit) \
+                and visit.visit_code in ['2001', '2003']:
+            return True
 
-        valid_infant_eligibility = False
+        if visit.visit_code == '2002':
+            return not hiv_tested_in_2001
 
-        # Validate infant eligibility
         if infant_feeding_crf:
-            hiv_test_6wks_post_wean = None
-            if infant_feeding_crf.dt_weaned:
-                hiv_test_6wks_post_wean = self.infant_hiv_test_model_cls.objects.filter(
-                    child_visit__subject_identifier=child_subject_identifier,
-                    received_date__gte=infant_feeding_crf.dt_weaned + timedelta(weeks=6)
-                ).first()
+            if infant_feeding_crf.continuing_to_bf == YES:
+                return True
+            elif infant_feeding_crf.continuing_to_bf == NO and not hiv_test_6wks_post_wean:
+                return True
 
-            valid_infant_eligibility = (infant_feeding_crf.continuing_to_bf == YES or
-                                        (infant_feeding_crf.continuing_to_bf == NO and hiv_test_6wks_post_wean is None))
-
-        return valid_visit_and_caregiver or valid_infant_eligibility
+        return False
