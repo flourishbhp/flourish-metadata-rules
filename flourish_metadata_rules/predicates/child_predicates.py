@@ -1,6 +1,6 @@
 from datetime import timedelta
 from flourish_caregiver.helper_classes import MaternalStatusHelper
-from datetime import datetime, timedelta
+from datetime import timedelta
 from dateutil.relativedelta import relativedelta
 from django.apps import apps as django_apps
 from edc_base.utils import age, get_utcnow
@@ -507,8 +507,6 @@ class ChildPredicates(PredicateCollection):
         If none of these conditions are met, the function returns False.
         """
         child_subject_identifier = visit.subject_identifier
-        caregiver_subject_identifier = child_subject_identifier[:-3]
-        maternal_status_helper = MaternalStatusHelper(subject_identifier=caregiver_subject_identifier)
 
         infant_feeding_crf = self.infant_feeding_model_cls.objects.filter(
             child_visit__subject_identifier=child_subject_identifier
@@ -528,18 +526,20 @@ class ChildPredicates(PredicateCollection):
                 received_date__gte=infant_feeding_crf.dt_weaned + timedelta(weeks=6)
             ).exists()
 
-        if maternal_status_helper.hiv_status == POS \
-                and self.newly_enrolled(visit=visit) \
-                and visit.visit_code in ['2001', '2003']:
-            return True
-
-        if visit.visit_code == '2002':
-            return not hiv_tested_in_2001
-
-        if infant_feeding_crf:
-            if infant_feeding_crf.continuing_to_bf == YES:
+        hiv_status = self.get_latest_maternal_hiv_status(visit=visit).hiv_status
+        if hiv_status == POS:
+            if (self.newly_enrolled(visit=visit)
+                and visit.visit_code in ['2001', '2003']):
                 return True
-            elif infant_feeding_crf.continuing_to_bf == NO and not hiv_test_6wks_post_wean:
+
+            if visit.visit_code == '2002':
+                return not hiv_tested_in_2001
+
+            continuing_to_bf = getattr(infant_feeding_crf, 'continuing_to_bf', None)
+
+            if continuing_to_bf == YES:
+                return True
+            elif continuing_to_bf == NO and not hiv_test_6wks_post_wean:
                 return True
 
         return False
