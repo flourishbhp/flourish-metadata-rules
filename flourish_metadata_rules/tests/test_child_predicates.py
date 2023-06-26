@@ -86,7 +86,7 @@ class TestChildPredicates(SiteTestCaseMixin, TestCase):
 
         self.assertTrue(
             self.pc.func_12_years_older(self.infant_visits[0], ))
-    @tag('yes')   
+          
     def test_func_11_years_older(self):
         ChildAssent.objects.create(
             subject_identifier=self.subject_identifier,
