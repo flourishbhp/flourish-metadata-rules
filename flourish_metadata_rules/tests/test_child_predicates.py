@@ -86,6 +86,18 @@ class TestChildPredicates(SiteTestCaseMixin, TestCase):
 
         self.assertTrue(
             self.pc.func_12_years_older(self.infant_visits[0], ))
+    @tag('yes')   
+    def test_func_11_years_older(self):
+        ChildAssent.objects.create(
+            subject_identifier=self.subject_identifier,
+            gender='M')
+
+        CaregiverChildConsent.objects.create(
+            subject_identifier=self.subject_identifier,
+            child_dob=(get_utcnow() - relativedelta(years=11, months=5)).date())
+
+        self.assertTrue(
+            self.pc.func_11_years_older(self.infant_visits[0], ))
 
     def test_func_12_years_older_female(self):
         ChildAssent.objects.create(

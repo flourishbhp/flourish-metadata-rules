@@ -260,6 +260,12 @@ class ChildPredicates(PredicateCollection):
         """
         child_age = self.get_child_age(visit=visit)
         return child_age.years >= 12 if child_age else False
+    
+    def func_11_years_older(self, visit=None, **kwargs):
+        """Returns true if participant is 11 years or older
+        """
+        child_age = self.get_child_age(visit=visit)
+        return child_age.years >= 11 if child_age else False
 
     def func_12_years_older_female(self, visit=None, **kwargs):
         """Returns true if participant is 12 years or older
