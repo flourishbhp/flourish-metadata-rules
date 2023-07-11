@@ -1,6 +1,5 @@
 from datetime import timedelta
-from flourish_caregiver.helper_classes import MaternalStatusHelper
-from datetime import timedelta
+
 from dateutil.relativedelta import relativedelta
 from django.apps import apps as django_apps
 from django.db.models import Q
