@@ -1,12 +1,14 @@
 from datetime import timedelta
-from flourish_caregiver.helper_classes import MaternalStatusHelper
-from datetime import timedelta
+
 from dateutil.relativedelta import relativedelta
 from django.apps import apps as django_apps
+from django.db.models import Q
 from edc_base.utils import age, get_utcnow
-from edc_constants.constants import FEMALE, YES, POS, NO, IND
+from edc_constants.constants import FEMALE, IND, NO, POS, YES
 from edc_metadata_rules import PredicateCollection
 from edc_reference.models import Reference
+
+from flourish_caregiver.helper_classes import MaternalStatusHelper
 
 
 class UrlMixinNoReverseMatch(Exception):
@@ -107,18 +109,16 @@ class ChildPredicates(PredicateCollection):
 
     def version_2_1(self, visit=None, **kwargs):
         """
-        Returns true if the participant is enrolled under version 2.1 and is a delivery visit
+        Returns true if the participant is enrolled under version 2.1 and is a delivery
+        visit
         """
         caregiver_child_consent_cls = django_apps.get_model(
             f'{self.maternal_app_label}.caregiverchildconsent')
-        try:
-            caregiver_child_consent_cls.objects.get(
-                subject_identifier=visit.subject_identifier,
-                version='2.1')
-        except caregiver_child_consent_cls.DoesNotExist:
-            return False
-        else:
-            return visit.visit_code == '2000D' and visit.visit_code_sequence == 0
+        consent_objs = caregiver_child_consent_cls.objects.filter(
+            subject_identifier=visit.subject_identifier, ).exclude(
+            Q(version='1') | Q(version='2'))
+        return visit.visit_code == '2000D' and visit.visit_code_sequence == 0 and \
+            consent_objs.exists()
 
     def get_child_age(self, visit=None, **kwargs):
         """Returns child age
@@ -260,7 +260,7 @@ class ChildPredicates(PredicateCollection):
         """
         child_age = self.get_child_age(visit=visit)
         return child_age.years >= 12 if child_age else False
-    
+
     def func_11_years_older(self, visit=None, **kwargs):
         """Returns true if participant is 11 years or older
         """
