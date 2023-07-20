@@ -6,13 +6,14 @@ from ....predicates import ChildPredicates
 
 
 app_label = 'flourish_child'
+pc = ChildPredicates()
 
 
 @register()
 class TbPresenceHouseholdMembersAdolRuleGroup(CrfRuleGroup):
 
     tb_referral_rule = CrfRule(
-        predicate=P('tb_referral', 'eq', NO),
+        predicate=pc.func_tbreferaladol_required,
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.tbreferaladol', ])

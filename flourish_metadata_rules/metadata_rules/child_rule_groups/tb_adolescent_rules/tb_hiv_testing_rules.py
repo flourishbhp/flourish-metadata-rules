@@ -6,14 +6,14 @@ from ....predicates import ChildPredicates
 
 
 app_label = 'flourish_child'
+pc = ChildPredicates()
 
 
 @register()
 class HivTestingAdolRuleGroup(CrfRuleGroup):
 
     tb_referral_rule = CrfRule(
-        predicate=PF('seen_by_healthcare', 'referred_for_treatment',
-                     func=lambda healthcare, treatment: healthcare == NO or treatment == NO),
+        predicate=pc.func_tbreferaladol_required,
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.tbreferaladol', ])

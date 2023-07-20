@@ -1,3 +1,4 @@
+from datetime import timedelta
 from flourish_caregiver.helper_classes import MaternalStatusHelper
 
 from dateutil.relativedelta import relativedelta
@@ -23,6 +24,9 @@ class ChildPredicates(PredicateCollection):
     tb_presence_model = f'{app_label}.tbpresencehouseholdmembersadol'
     child_requisition_model = f'{app_label}.childrequisition'
     tb_lab_results_model = f'{app_label}.tblabresultsadol'
+    infant_feeding_model = f'{app_label}.infantfeeding'
+    infant_hiv_test_model = f'{app_label}.infanthivtesting'
+    tb_hivtesting_model = f'{app_label}.hivtestingadol'
 
     @property
     def tb_presence_model_cls(self):
@@ -39,6 +43,10 @@ class ChildPredicates(PredicateCollection):
     @property
     def tb_lab_results_cls(self):
         return django_apps.get_model(self.tb_lab_results_model)
+
+    @property
+    def tb_hivtesting_model_cls(self):
+        return django_apps.get_model(self.tb_hivtesting_model)
 
     @property
     def tb_visit_screening_model_cls(self):
@@ -444,7 +452,6 @@ class ChildPredicates(PredicateCollection):
         elif visit.visit_code == '2100A' and visit.visit_code_sequence == 0:
             result = True
 
-
         return result or self.func_tb_lab_results_exist(visit, **kwargs)
 
     def func_tb_lab_results_exist(self, visit, **kwargs):
@@ -470,3 +477,102 @@ class ChildPredicates(PredicateCollection):
             result = True
 
         return result
+
+    def newly_enrolled(self, visit=None, **kwargs):
+        """Returns true if newly enrolled
+        """
+        enrollment_model = django_apps.get_model(
+            f'{self.maternal_app_label}.antenatalenrollment')
+        try:
+            enrollment_model.objects.get(
+                subject_identifier=visit.subject_identifier[:-3])
+        except enrollment_model.DoesNotExist:
+            return False
+        else:
+            return True
+
+    def func_hiv_infant_testing(self, visit=None, **kwargs):
+        """
+        Returns True under the following conditions:
+        - The visit code is 2001 or 2003, and the caregiver is a newly enrolled woman living with HIV.
+        - The visit code is 2002 and the child hasn't been tested for HIV in the 2001 visit.
+        - The child is still breastfeeding.
+        - The child has stopped breastfeeding and the final HIV test for the infant has not been received 6 weeks after weaning.
+        If none of these conditions are met, the function returns False.
+        """
+        child_subject_identifier = visit.subject_identifier
+
+        infant_feeding_crf = self.infant_feeding_model_cls.objects.filter(
+            child_visit__subject_identifier=child_subject_identifier
+        ).order_by('-report_datetime').first()
+
+        hiv_tested_in_2001 = self.infant_hiv_test_model_cls.objects.filter(
+            child_visit__subject_identifier=child_subject_identifier,
+            child_visit__visit_code='2001',
+            child_tested_for_hiv=YES
+        ).exists()
+
+        hiv_test_6wks_post_wean = None
+
+        if infant_feeding_crf and infant_feeding_crf.dt_weaned:
+            hiv_test_6wks_post_wean = self.infant_hiv_test_model_cls.objects.filter(
+                child_visit__subject_identifier=child_subject_identifier,
+                received_date__gte=infant_feeding_crf.dt_weaned +
+                timedelta(weeks=6)
+            ).exists()
+
+        hiv_status = self.get_latest_maternal_hiv_status(
+            visit=visit).hiv_status
+        if hiv_status == POS:
+            if (self.newly_enrolled(visit=visit)
+                    and visit.visit_code in ['2001', '2003']):
+                return True
+
+            if visit.visit_code == '2002':
+                return not hiv_tested_in_2001
+
+            continuing_to_bf = getattr(
+                infant_feeding_crf, 'continuing_to_bf', None)
+
+            if continuing_to_bf == YES:
+                return True
+            elif continuing_to_bf == NO and not hiv_test_6wks_post_wean:
+                return True
+
+        return False
+
+    def func_tbhivtesting(self, visit=None, **kwargs):
+        try:
+            tb_hivtesting_obj = self.tb_hivtesting_model_cls.objects.get(
+                child_visit=visit
+            )
+        except self.tb_hivtesting_model_cls.DoesNotExist:
+            return False
+        else:
+            return tb_hivtesting_obj.seen_by_healthcare == NO or tb_hivtesting_obj.referred_for_treatment == NO
+
+    def func_tb_lab_results(self, visit, **kwargs):
+        try:
+            result_obj = self.tb_lab_results_cls.objects.get(
+                child_visit__subject_identifier=visit.subject_identifier,
+                child_visit__visit_code='2100A',
+                child_visit__visit_code_sequence='0')
+
+        except self.tb_lab_results_cls.DoesNotExist:
+            False
+        else:
+            return result_obj.quantiferon_result == POS
+
+    def func_visit_screening(self, visit, **kwargs):
+        try:
+            tb_screening_obj = self.tb_visit_screening_model_cls.objects.get(
+                child_visit=visit)
+
+        except self.tb_visit_screening_model_cls.DoesNotExist:
+            return False
+        else:
+            return tb_screening_obj.cough_duration == YES or tb_screening_obj.fever_duration == YES or tb_screening_obj.night_sweats == YES or tb_screening_obj.weight_loss == YES
+
+    def func_tbreferaladol_required(self, visit=None, **kwargs):
+
+        return self.func_tbhivtesting(visit=visit) or self.func_tb_lab_results(visit=visit) or self.func_visit_screening(visit=visit) or self.func_diagnosed_with_tb(visit=visit)

@@ -5,13 +5,14 @@ from edc_constants.constants import POS
 from ....predicates import ChildPredicates
 
 app_label = 'flourish_child'
+pc = ChildPredicates()
 
 
 @register()
 class TbLabResultsAdolRuleGroup(CrfRuleGroup):
 
     tb_referral_rule = CrfRule(
-        predicate=P('quantiferon_result', 'eq', POS),
+        predicate=pc.func_tbreferaladol_required,
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.tbreferaladol', ])
