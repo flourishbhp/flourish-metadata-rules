@@ -554,9 +554,7 @@ class ChildPredicates(PredicateCollection):
     def func_tb_lab_results(self, visit, **kwargs):
         try:
             result_obj = self.tb_lab_results_cls.objects.get(
-                child_visit__subject_identifier=visit.subject_identifier,
-                child_visit__visit_code='2100A',
-                child_visit__visit_code_sequence='0')
+                child_visit=visit)
 
         except self.tb_lab_results_cls.DoesNotExist:
             False
