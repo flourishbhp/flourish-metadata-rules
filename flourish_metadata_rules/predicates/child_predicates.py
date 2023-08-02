@@ -1,4 +1,5 @@
 from datetime import timedelta
+from flourish_caregiver.helper_classes import MaternalStatusHelper
 
 from dateutil.relativedelta import relativedelta
 from django.apps import apps as django_apps
@@ -28,6 +29,7 @@ class ChildPredicates(PredicateCollection):
     tb_lab_results_model = f'{app_label}.tblabresultsadol'
     infant_feeding_model = f'{app_label}.infantfeeding'
     infant_hiv_test_model = f'{app_label}.infanthivtesting'
+    tb_hivtesting_model = f'{app_label}.hivtestingadol'
 
     @property
     def tb_presence_model_cls(self):
@@ -541,7 +543,8 @@ class ChildPredicates(PredicateCollection):
             if visit.visit_code == '2002':
                 return not hiv_tested_in_2001
 
-            continuing_to_bf = getattr(infant_feeding_crf, 'continuing_to_bf', None)
+            continuing_to_bf = getattr(
+                infant_feeding_crf, 'continuing_to_bf', None)
 
             if continuing_to_bf == YES:
                 return True
@@ -549,3 +552,37 @@ class ChildPredicates(PredicateCollection):
                 return True
 
         return False
+
+    def func_tbhivtesting(self, visit=None, **kwargs):
+        try:
+            tb_hivtesting_obj = self.tb_hivtesting_model_cls.objects.get(
+                child_visit=visit
+            )
+        except self.tb_hivtesting_model_cls.DoesNotExist:
+            return False
+        else:
+            return tb_hivtesting_obj.seen_by_healthcare == NO or tb_hivtesting_obj.referred_for_treatment == NO
+
+    def func_tb_lab_results(self, visit, **kwargs):
+        try:
+            result_obj = self.tb_lab_results_cls.objects.get(
+                child_visit=visit)
+
+        except self.tb_lab_results_cls.DoesNotExist:
+            False
+        else:
+            return result_obj.quantiferon_result == POS
+
+    def func_visit_screening(self, visit, **kwargs):
+        try:
+            tb_screening_obj = self.tb_visit_screening_model_cls.objects.get(
+                child_visit=visit)
+
+        except self.tb_visit_screening_model_cls.DoesNotExist:
+            return False
+        else:
+            return tb_screening_obj.cough_duration == YES or tb_screening_obj.fever_duration == YES or tb_screening_obj.night_sweats == YES or tb_screening_obj.weight_loss == YES
+
+    def func_tbreferaladol_required(self, visit=None, **kwargs):
+
+        return self.func_tbhivtesting(visit=visit) or self.func_tb_lab_results(visit=visit) or self.func_visit_screening(visit=visit) or self.func_diagnosed_with_tb(visit=visit)
