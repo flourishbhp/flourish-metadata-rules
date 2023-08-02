@@ -13,7 +13,7 @@ class InterviewFocusGroupInterestRuleGroup(CrfRuleGroup):
         predicate=pc.func_interview_focus_group_interest,
         consequence=NOT_REQUIRED,
         alternative=REQUIRED,
-        target_models=[f'{app_label}.interviewfocusgroupinterest', ])
+        target_models=[f'{app_label}.interviewfocusgroupinterestv2', ])
 
     class Meta:
         app_label = app_label
