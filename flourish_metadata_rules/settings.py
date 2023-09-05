@@ -54,14 +54,15 @@ INSTALLED_APPS = [
     'edc_protocol.apps.AppConfig',
     'edc_timepoint.apps.AppConfig',
     'edc_reference.apps.AppConfig',
+    'edc_visit_schedule.apps.AppConfig',
+    'edc_metadata_rules.apps.AppConfig',
     'edc_senaite_interface.apps.AppConfig',
-    'pre_flourish.apps.AppConfig',
     'flourish_caregiver.apps.AppConfig',
     'flourish_child.apps.AppConfig',
     'flourish_follow.apps.AppConfig',
     'flourish_prn.apps.AppConfig',
-    'flourish_visit_schedule.apps.AppConfig',
     'flourish_reference.apps.AppConfig',
+    'flourish_visit_schedule.apps.AppConfig',
     'flourish_metadata_rules.apps.EdcVisitTrackingAppConfig',
     'flourish_metadata_rules.apps.EdcMetadataAppConfig',
     'flourish_metadata_rules.apps.EdcFacilityAppConfig',
@@ -77,6 +78,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'edc_subject_dashboard.middleware.DashboardMiddleware',
+    'edc_dashboard.middleware.DashboardMiddleware'
 ]
 
 ROOT_URLCONF = 'flourish_metadata_rules.urls'
@@ -148,6 +150,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_URL = '/static/'
+
+BASE_FORMAT = '%Y-%m-%d'
 
 HOLIDAY_FILE = os.path.join(BASE_DIR, 'holidays.csv')
 
