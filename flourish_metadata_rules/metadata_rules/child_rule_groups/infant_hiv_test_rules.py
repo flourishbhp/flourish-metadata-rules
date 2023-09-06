@@ -17,4 +17,4 @@ class InfantHIVTestRuleGroup(CrfRuleGroup):
 
     class Meta:
         app_label = app_label
-        
+    
