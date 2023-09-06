@@ -1,5 +1,4 @@
 from datetime import timedelta
-from flourish_caregiver.helper_classes import MaternalStatusHelper
 
 from dateutil.relativedelta import relativedelta
 from django.apps import apps as django_apps
@@ -10,6 +9,7 @@ from edc_metadata_rules import PredicateCollection
 from edc_reference.models import Reference
 
 from flourish_caregiver.helper_classes import MaternalStatusHelper
+from flourish_child.helper_classes.utils import child_utils
 
 
 class UrlMixinNoReverseMatch(Exception):
@@ -70,13 +70,15 @@ class ChildPredicates(PredicateCollection):
         """
         if visit.visit_code_sequence == 0:
             child_subject_identifier = visit.subject_identifier
-            caregiver_subject_identifier = child_subject_identifier[0:16]
+            caregiver_subject_identifier = child_utils.caregiver_subject_identifier(
+                subject_identifier=child_subject_identifier)
             maternal_status_helper = MaternalStatusHelper(
                 subject_identifier=caregiver_subject_identifier)
             return maternal_status_helper.hiv_status == POS
 
     def get_latest_maternal_hiv_status(self, visit=None):
-        maternal_subject_id = visit.subject_identifier[:-3]
+        maternal_subject_id = child_utils.caregiver_subject_identifier(
+            subject_identifier=visit.subject_identifier)
         maternal_visit = self.maternal_visit_model_cls.objects.filter(
             subject_identifier=maternal_subject_id)
 
@@ -92,11 +94,13 @@ class ChildPredicates(PredicateCollection):
     def mother_pregnant(self, visit=None, **kwargs):
         """Returns true if expecting
         """
+        maternal_subject_id = child_utils.caregiver_subject_identifier(
+            subject_identifier=visit.subject_identifier)
         enrollment_model = django_apps.get_model(
             f'{self.maternal_app_label}.antenatalenrollment')
         try:
             enrollment_model.objects.get(
-                subject_identifier=visit.subject_identifier[:-3])
+                subject_identifier=maternal_subject_id)
         except enrollment_model.DoesNotExist:
             return False
         else:
@@ -104,7 +108,7 @@ class ChildPredicates(PredicateCollection):
                 f'{self.maternal_app_label}.maternaldelivery')
             try:
                 maternal_delivery_cls.objects.get(
-                    subject_identifier=visit.subject_identifier[:-3])
+                    subject_identifier=maternal_subject_id)
             except maternal_delivery_cls.DoesNotExist:
                 return True
         return False
@@ -185,6 +189,8 @@ class ChildPredicates(PredicateCollection):
 
         consent_objs = consent_cls.objects.filter(
             subject_identifier=visit.subject_identifier)
+        maternal_subject_id = child_utils.caregiver_subject_identifier(
+            subject_identifier=visit.subject_identifier)
 
         if consent_objs:
             preg_enrol = getattr(
@@ -192,7 +198,7 @@ class ChildPredicates(PredicateCollection):
 
         try:
             maternal_delivery_cls.objects.get(
-                subject_identifier=visit.subject_identifier[:-3],
+                subject_identifier=maternal_subject_id,
                 live_infants_to_register__gte=1)
         except maternal_delivery_cls.DoesNotExist:
             return False
@@ -225,16 +231,16 @@ class ChildPredicates(PredicateCollection):
         if child_age < 7:
             consent_cls = django_apps.get_model(
                 f'{self.maternal_app_label}.caregiverchildconsent')
-            subject_identifier = visit.subject_ifdentifier[:-3]
+            subject_identifier = visit.subject_identifier
 
         elif child_age >= 18:
             consent_cls = django_apps.get_model(
                 f'{self.app_label}.childcontinuedconsent')
-            subject_identifier = visit.subject_ifdentifier
+            subject_identifier = visit.subject_identifier
         else:
             consent_cls = django_apps.get_model(
                 f'{self.app_label}.childassent')
-            subject_identifier = visit.subject_ifdentifier
+            subject_identifier = visit.subject_identifier
 
         if consent_cls and subject_identifier:
             consent_objs = consent_cls.objects.filter(
@@ -497,34 +503,44 @@ class ChildPredicates(PredicateCollection):
         """
         enrollment_model = django_apps.get_model(
             f'{self.maternal_app_label}.antenatalenrollment')
+        maternal_subject_id = child_utils.caregiver_subject_identifier(
+            subject_identifier=visit.subject_identifier)
         try:
             enrollment_model.objects.get(
-                subject_identifier=visit.subject_identifier[:-3])
+                subject_identifier=maternal_subject_id)
         except enrollment_model.DoesNotExist:
             return False
         else:
             return True
 
     def func_hiv_infant_testing(self, visit=None, **kwargs):
-        """Returns true if the visit is 2001, 2002, 2003 and the caregiver
-         is newly enrolled women living with HIV
+        """
+        Returns True under the following conditions:
+        - The visit code is 2001 or 2003, and the caregiver is a newly enrolled woman living with HIV.
+        - The visit code is 2002 and the child hasn't been tested for HIV in the 2001 visit.
+        - The child is still breastfeeding.
+        - The child has stopped breastfeeding and the final HIV test for the infant has not been received 6 weeks after weaning.
+        If none of these conditions are met, the function returns False.
         """
         child_subject_identifier = visit.subject_identifier
 
-        # Get infant feeding CRF
         infant_feeding_crf = self.infant_feeding_model_cls.objects.filter(
+            child_visit__subject_identifier=child_subject_identifier
+        ).order_by('-report_datetime').first()
+
+        hiv_tested_in_2001 = self.infant_hiv_test_model_cls.objects.filter(
             child_visit__subject_identifier=child_subject_identifier,
-            child_visit__visit_code=visit.visit_code).first()
+            child_visit__visit_code='2001',
+            child_tested_for_hiv=YES
+        ).exists()
 
-        # Validate visit and caregiver
-        valid_visit_and_caregiver = (
-                maternal_status_helper.hiv_status == POS
-                and self.newly_enrolled(visit=visit)
-                and visit.visit_code in [
-                    '2001', '2002', '2003'])
+        hiv_test_6wks_post_wean = None
 
-        # Initialize valid_infant_eligibility as False
-        valid_infant_eligibility = False
+        if infant_feeding_crf and infant_feeding_crf.dt_weaned:
+            hiv_test_6wks_post_wean = self.infant_hiv_test_model_cls.objects.filter(
+                child_visit__subject_identifier=child_subject_identifier,
+                received_date__gte=infant_feeding_crf.dt_weaned + timedelta(weeks=6)
+            ).exists()
 
         hiv_status = self.get_latest_maternal_hiv_status(visit=visit).hiv_status
         if hiv_status == POS:
