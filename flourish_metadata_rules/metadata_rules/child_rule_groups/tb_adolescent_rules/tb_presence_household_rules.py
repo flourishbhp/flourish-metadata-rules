@@ -21,3 +21,4 @@ class TbPresenceHouseholdMembersAdolRuleGroup(CrfRuleGroup):
     class Meta:
         app_label = app_label
         source_model = f'{app_label}.tbpresencehouseholdmembersadol'
+    
