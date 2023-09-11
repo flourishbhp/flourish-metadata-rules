@@ -594,3 +594,4 @@ class ChildPredicates(PredicateCollection):
     def func_tbreferaladol_required(self, visit=None, **kwargs):
 
         return self.func_tbhivtesting(visit=visit) or self.func_tb_lab_results(visit=visit) or self.func_visit_screening(visit=visit) or self.func_diagnosed_with_tb(visit=visit)
+    
