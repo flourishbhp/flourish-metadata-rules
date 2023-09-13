@@ -30,7 +30,7 @@ class ChildVisitRuleGroup(CrfRuleGroup):
         target_models=[f'{app_label}.infantarvexposure', ])
 
     older_than_6 = CrfRule(
-        predicate=pc.func_6_years_older,
+        predicate=pc.func_cbcl_required,
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.childcbclsection1',
@@ -42,8 +42,13 @@ class ChildVisitRuleGroup(CrfRuleGroup):
         predicate=pc.func_7_years_older,
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
-        target_models=[f'{app_label}.childtannerstaging',
-                       f'{app_label}.childpenncnb', ])
+        target_models=[f'{app_label}.childtannerstaging', ])
+
+    penncnb_ot_7 = CrfRule(
+        predicate=pc.func_penncnb_required,
+        consequence=REQUIRED,
+        alternative=NOT_REQUIRED,
+        target_models=[f'{app_label}.childpenncnb', ])
 
     female_older_12 = CrfRule(
         predicate=pc.func_12_years_older_female,
@@ -59,12 +64,16 @@ class ChildVisitRuleGroup(CrfRuleGroup):
                        f'{app_label}.childgadanxietyscreening', ])
     
     older_than_11 = CrfRule(
-        predicate=pc.func_11_years_older,
+        predicate=pc.func_brief2_self_required,
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.brief2selfreported', ])
 
-
+    brief_parent_exists = CrfRule(
+        predicate=pc.func_brief2_parent_required,
+        consequence=REQUIRED,
+        alternative=NOT_REQUIRED,
+        target_models=[f'{app_label}.brief2parent', ])
 
     younger_than_36months = CrfRule(
         predicate=pc.func_36_months_younger,

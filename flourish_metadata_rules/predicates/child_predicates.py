@@ -251,6 +251,30 @@ class ChildPredicates(PredicateCollection):
                 return consent_obj.specimen_consent == YES
             return False
 
+    def func_cbcl_required(self, visit=None, **kwargs):
+        childcbcl_model = f'{self.app_label}.childcbclsection1'
+        prev_instance = self.previous_model(
+            visit=visit, model=childcbcl_model)
+        return (not prev_instance and self.func_6_years_older(visit=visit))
+
+    def func_brief2_self_required(self, visit=None, **kwargs):
+        brief2self_model = f'{self.app_label}.brief2selfreported'
+        prev_instance = self.previous_model(
+            visit=visit, model=brief2self_model)
+        return (not prev_instance and self.func_11_years_older(visit=visit))
+
+    def func_penncnb_required(self, visit=None, **kwargs):
+        penncnb_model = f'{self.app_label}.childpenncnb'
+        prev_instance = self.previous_model(
+            visit=visit, model=penncnb_model)
+        return (not prev_instance and self.func_7_years_older(visit=visit))
+    
+    def func_brief2_parent_required(self, visit=None, **kwargs):
+        brief2parent_model = f'{self.app_label}.brief2parent'
+        prev_instance = self.previous_model(
+            visit=visit, model=brief2parent_model)
+        return not prev_instance
+
     def func_6_years_older(self, visit=None, **kwargs):
         """Returns true if participant is 6 years or older
         """
