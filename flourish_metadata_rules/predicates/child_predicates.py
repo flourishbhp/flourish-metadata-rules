@@ -30,6 +30,7 @@ class ChildPredicates(PredicateCollection):
     infant_feeding_model = f'{app_label}.infantfeeding'
     infant_hiv_test_model = f'{app_label}.infanthivtesting'
     tb_hivtesting_model = f'{app_label}.hivtestingadol'
+    infant_arv_proph_model = f'{app_label}.infantarvprophylaxis'
 
     @property
     def tb_presence_model_cls(self):
@@ -62,6 +63,10 @@ class ChildPredicates(PredicateCollection):
     @property
     def infant_hiv_test_model_cls(self):
         return django_apps.get_model(self.infant_hiv_test_model)
+
+    @property
+    def infant_arv_proph_model_cls(self):
+        return django_apps.get_model(self.infant_arv_proph_model)
 
     def func_hiv_exposed(self, visit=None, **kwargs):
         """
@@ -217,6 +222,19 @@ class ChildPredicates(PredicateCollection):
         hiv_status = self.get_latest_maternal_hiv_status(
             visit=visit).hiv_status
         return (self.func_consent_study_pregnant(visit=visit) and hiv_status == POS)
+
+    def func_arv_proph_quart(self, visit=None, **kwargs):
+        preg_pos = self.func_mother_preg_pos(visit)
+        if visit.visit_code == '2001':
+            return preg_pos
+        try:
+            prev_arv_proph = self.infant_arv_proph_model_cls.objects.get(
+                child_visit=visit.previous_visit)
+        except self.infant_arv_proph_model_cls.DoesNotExist:
+            return False
+        else:
+            return (prev_arv_proph.took_art_proph == YES and
+                    visit.visit_code == '2002')
 
     def func_specimen_storage_consent(self, visit=None, **kwargs):
         """Returns True if participant's mother consented to repository blood specimen

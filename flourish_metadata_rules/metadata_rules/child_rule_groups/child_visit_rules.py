@@ -29,6 +29,12 @@ class ChildVisitRuleGroup(CrfRuleGroup):
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.infantarvexposure', ])
 
+    arv_proph_quart = CrfRule(
+        predicate=pc.func_arv_proph_quart,
+        consequence=REQUIRED,
+        alternative=NOT_REQUIRED,
+        target_models=[f'{app_label}.infantarvprophylaxis', ])
+
     older_than_6 = CrfRule(
         predicate=pc.func_cbcl_required,
         consequence=REQUIRED,
