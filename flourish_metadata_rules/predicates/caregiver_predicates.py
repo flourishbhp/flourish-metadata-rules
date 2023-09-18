@@ -407,7 +407,15 @@ class CaregiverPredicates(PredicateCollection):
         """
         Returns true if the visit is 2002M and the caregiver breastfeeding
         """
-        return visit.visit_code == '2002M' and self.enrolled_pregnant(visit=visit)
+        if visit.visit_code == '2002M':
+            return self.enrolled_pregnant(visit=visit)
+
+        prev_obj = Reference.objects.filter(
+            model=f'{self.app_label}.breastfeedingquestionnaire',
+            report_datetime__lt=visit.report_datetime,
+            identifier=visit.subject_identifier, ).exists()
+        return (visit.visit_code > '2002M' and 
+                not prev_obj and self.enrolled_pregnant(visit))
 
     def func_show_father_involvement(self, visit=None, maternal_status_helper=None, **kwargs):
         """
