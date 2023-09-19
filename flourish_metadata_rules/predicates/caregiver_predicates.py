@@ -456,14 +456,20 @@ class CaregiverPredicates(PredicateCollection):
         return visit.visit_code in ['1000M', '2000M'] and hiv_pos and is_bio_caregiver
 
     def func_interview_focus_group_interest(self, visit=None, **kwargs):
-        interview_focus_group_interest_cls = django_apps.get_model(
-            'flourish_caregiver.interviewfocusgroupinterestv2')
-        try:
-            interview_focus_group_interest_cls.objects.get(
-                maternal_visit__subject_identifier=visit.subject_identifier,
-                maternal_visit__schedule_name__icontains='quart',
-            )
-        except interview_focus_group_interest_cls.DoesNotExist:
-            return False
-        else:
-            return True
+        """ Returns true if there's no previous instance of interview focus and interview crf
+            otherwise returns false. NOTE: checks across both version 1 and 2 of the crf.
+        """
+        interview_focus_crfs = ['interviewfocusgroupinterest',
+                                'interviewfocusgroupinterestv2']
+        for interview_crf in interview_focus_crfs:
+            interview_focus_cls = django_apps.get_model(
+                f'{self.app_label}.{interview_crf}')
+            try:
+                interview_focus_cls.objects.get(
+                    maternal_visit__subject_identifier=visit.subject_identifier,
+                    maternal_visit__schedule_name__icontains='quart', )
+            except interview_focus_cls.DoesNotExist:
+                continue
+            else:
+                return True
+        return False

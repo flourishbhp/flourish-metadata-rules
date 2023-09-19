@@ -9,7 +9,7 @@ pc = CaregiverPredicates()
 
 @register()
 class InterviewFocusGroupInterestRuleGroup(CrfRuleGroup):
-    tb_referral = CrfRule(
+    interview_focus = CrfRule(
         predicate=pc.func_interview_focus_group_interest,
         consequence=NOT_REQUIRED,
         alternative=REQUIRED,
@@ -17,4 +17,3 @@ class InterviewFocusGroupInterestRuleGroup(CrfRuleGroup):
 
     class Meta:
         app_label = app_label
-        #source_model = f'{app_label}.interviewfocusgroupinterest'
