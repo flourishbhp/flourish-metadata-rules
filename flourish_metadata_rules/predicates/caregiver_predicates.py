@@ -128,11 +128,13 @@ class CaregiverPredicates(PredicateCollection):
                 and not self.prior_participation(visit=visit))
 
     def requires_post_referral(self, model_cls, visit):
-
+        visit_code = visit.visit_code[:-2] + '0M'
+        if self.enrolled_pregnant(visit) and '_fu' not in visit.schedule_name:
+            visit_code = '1000M'
         try:
             model_obj = model_cls.objects.get(
                 maternal_visit__subject_identifier=visit.subject_identifier,
-                maternal_visit__visit_code=visit.visit_code[:-2] + '0M',
+                maternal_visit__visit_code=visit_code,
                 maternal_visit__visit_code_sequence=0)
         except model_cls.DoesNotExist:
             return False
