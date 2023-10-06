@@ -12,9 +12,10 @@ pc = ChildPredicates()
 @register()
 class ChildVisitReqRuleGroup(RequisitionRuleGroup):
 
-    # for dna_pcr if the newly enroled pregnant WLHIV
+    # for dna_pcr if the newly enroled pregnant WLHIV and
+    # not FU visit
     dna_pcr_panel_rule = RequisitionRule(
-        predicate=pc.func_mother_preg_pos,
+        predicate=pc.func_preg_pos_not_fu,
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
         target_panels=[dna_pcr_panel, ])

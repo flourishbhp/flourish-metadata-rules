@@ -217,6 +217,11 @@ class ChildPredicates(PredicateCollection):
             visit=visit).hiv_status
         return (self.func_consent_study_pregnant(visit=visit) and hiv_status == POS)
 
+    def func_preg_pos_not_fu(self, visit=None, **kwargs):
+        """ Returns True if enrolled pregnant, and visit is not FU.
+        """
+        return self.func_mother_preg_pos(visit) and not visit.visit_code == '3000'
+
     def func_arv_proph_quart(self, visit=None, **kwargs):
         preg_pos = self.func_mother_preg_pos(visit)
         if visit.visit_code == '2001':
