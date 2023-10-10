@@ -17,8 +17,8 @@ class ChildVisitRuleGroup(CrfRuleGroup):
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.birthexam', ])
 
-    consent_study_pregnant = CrfRule(
-        predicate=pc.func_consent_study_pregnant,
+    birth_data_rule = CrfRule(
+        predicate=pc.func_birth_data_required,
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.birthdata', ])
