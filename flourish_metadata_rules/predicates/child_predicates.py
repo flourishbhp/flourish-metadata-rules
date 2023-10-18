@@ -576,8 +576,13 @@ class ChildPredicates(PredicateCollection):
                 received_date__gte=infant_feeding_crf.dt_weaned + timedelta(weeks=6)
             ).exists()
 
+        child_age = self.get_child_age(visit=visit)
+
+        child_age_in_months = (child_age.years * 12) + child_age.months
+
         hiv_status = self.get_latest_maternal_hiv_status(visit=visit).hiv_status
-        if hiv_status == POS:
+        if (hiv_status == POS and self.func_consent_study_pregnant(visit=visit) and
+            child_age_in_months <= 18):
             if (self.newly_enrolled(visit=visit)
                     and visit.visit_code in ['2001', '2003']):
                 return True
@@ -588,10 +593,8 @@ class ChildPredicates(PredicateCollection):
             continuing_to_bf = getattr(
                 infant_feeding_crf, 'continuing_to_bf', None)
 
-            if continuing_to_bf == YES:
-                return True
-            elif continuing_to_bf == NO and not hiv_test_6wks_post_wean:
-                return True
+            return  continuing_to_bf == YES or (continuing_to_bf == NO and not
+            hiv_test_6wks_post_wean)
 
         return False
 
