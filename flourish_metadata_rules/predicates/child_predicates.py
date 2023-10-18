@@ -599,10 +599,9 @@ class ChildPredicates(PredicateCollection):
         child_age_in_months = (child_age.years * 12) + child_age.months
 
         hiv_status = self.get_latest_maternal_hiv_status(visit=visit).hiv_status
-        if (hiv_status == POS and self.func_consent_study_pregnant(visit=visit) and
-            child_age_in_months <= 18):
+        if (hiv_status == POS and self.func_consent_study_pregnant(visit=visit)):
             if (self.newly_enrolled(visit=visit)
-                    and visit.visit_code in ['2001', '2003']):
+                    and visit.visit_code in ['2001', '2003', '3000']):
                 return True
 
             if visit.visit_code == '2002':
