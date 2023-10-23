@@ -204,6 +204,14 @@ class ChildPredicates(PredicateCollection):
         else:
             return preg_enrol
 
+    def func_birth_data_required(self, visit=None, **kwargs):
+        """Returns True if participant's mother consented to the study in pregnancy and
+        birth data has not been entered
+        """
+        bith_data_model = f'{self.app_label}.birthdata'
+        prev_bith_data_obj = self.previous_model(visit=visit, model=bith_data_model)
+        return self.func_consent_study_pregnant(visit=visit) and not prev_bith_data_obj
+
     def func_mother_preg_pos(self, visit=None, **kwargs):
         """ Returns True if participant's mother consented to the study in
             pregnancy and latest hiv status is POS.
@@ -267,7 +275,7 @@ class ChildPredicates(PredicateCollection):
         prev_instance = self.previous_model(
             visit=visit, model=penncnb_model)
         return (not prev_instance and self.func_7_years_older(visit=visit))
-    
+
     def func_brief2_parent_required(self, visit=None, **kwargs):
         brief2parent_model = f'{self.app_label}.brief2parent'
         prev_instance = self.previous_model(
@@ -539,10 +547,13 @@ class ChildPredicates(PredicateCollection):
     def func_hiv_infant_testing(self, visit=None, **kwargs):
         """
         Returns True under the following conditions:
-        - The visit code is 2001 or 2003, and the caregiver is a newly enrolled woman living with HIV.
-        - The visit code is 2002 and the child hasn't been tested for HIV in the 2001 visit.
+        - The visit code is 2001 or 2003, and the caregiver is a newly enrolled woman
+        living with HIV.
+        - The visit code is 2002 and the child hasn't been tested for HIV in the 2001
+        visit.
         - The child is still breastfeeding.
-        - The child has stopped breastfeeding and the final HIV test for the infant has not been received 6 weeks after weaning.
+        - The child has stopped breastfeeding and the final HIV test for the infant has
+        not been received 6 weeks after weaning.
         If none of these conditions are met, the function returns False.
         """
         child_subject_identifier = visit.subject_identifier
@@ -565,10 +576,14 @@ class ChildPredicates(PredicateCollection):
                 received_date__gte=infant_feeding_crf.dt_weaned + timedelta(weeks=6)
             ).exists()
 
+        child_age = self.get_child_age(visit=visit)
+
+        child_age_in_months = (child_age.years * 12) + child_age.months
+
         hiv_status = self.get_latest_maternal_hiv_status(visit=visit).hiv_status
-        if hiv_status == POS:
+        if (hiv_status == POS and self.func_consent_study_pregnant(visit=visit)):
             if (self.newly_enrolled(visit=visit)
-                and visit.visit_code in ['2001', '2003']):
+                    and visit.visit_code in ['2001', '2003', '3000']):
                 return True
 
             if visit.visit_code == '2002':
@@ -577,10 +592,8 @@ class ChildPredicates(PredicateCollection):
             continuing_to_bf = getattr(
                 infant_feeding_crf, 'continuing_to_bf', None)
 
-            if continuing_to_bf == YES:
-                return True
-            elif continuing_to_bf == NO and not hiv_test_6wks_post_wean:
-                return True
+            return  continuing_to_bf == YES or (continuing_to_bf == NO and not
+            hiv_test_6wks_post_wean)
 
         return False
 
@@ -592,7 +605,8 @@ class ChildPredicates(PredicateCollection):
         except self.tb_hivtesting_model_cls.DoesNotExist:
             return False
         else:
-            return tb_hivtesting_obj.seen_by_healthcare == NO or tb_hivtesting_obj.referred_for_treatment == NO
+            return (tb_hivtesting_obj.seen_by_healthcare == NO or
+                    tb_hivtesting_obj.referred_for_treatment == NO)
 
     def func_tb_lab_results(self, visit, **kwargs):
         try:
@@ -612,9 +626,13 @@ class ChildPredicates(PredicateCollection):
         except self.tb_visit_screening_model_cls.DoesNotExist:
             return False
         else:
-            return tb_screening_obj.cough_duration == YES or tb_screening_obj.fever_duration == YES or tb_screening_obj.night_sweats == YES or tb_screening_obj.weight_loss == YES
+            return (tb_screening_obj.cough_duration == YES or
+                    tb_screening_obj.fever_duration == YES or
+                    tb_screening_obj.night_sweats == YES or
+                    tb_screening_obj.weight_loss == YES)
 
     def func_tbreferaladol_required(self, visit=None, **kwargs):
 
-        return self.func_tbhivtesting(visit=visit) or self.func_tb_lab_results(visit=visit) or self.func_visit_screening(visit=visit) or self.func_diagnosed_with_tb(visit=visit)
-    
+        return self.func_tbhivtesting(visit=visit) or self.func_tb_lab_results(
+            visit=visit) or self.func_visit_screening(
+            visit=visit) or self.func_diagnosed_with_tb(visit=visit)

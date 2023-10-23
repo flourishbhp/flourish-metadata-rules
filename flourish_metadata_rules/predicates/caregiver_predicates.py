@@ -179,8 +179,7 @@ class CaregiverPredicates(PredicateCollection):
             maternal_visit=visit)
 
         return (self.func_bio_mother(visit=visit) and not self.currently_pregnant(
-            visit=visit)
-                and maternal_status_helper.hiv_status == POS)
+            visit=visit) and maternal_status_helper.hiv_status == POS)
 
     def func_bio_mothers_hiv_cohort_a(self, visit=None,
                                       maternal_status_helper=None, **kwargs):
@@ -281,11 +280,8 @@ class CaregiverPredicates(PredicateCollection):
     def func_post_hiv_rapid_test(self, visit, **kwargs):
         maternal_helper = MaternalStatusHelper(maternal_visit=visit)
 
-        if maternal_helper.hiv_status in [NEG, IND, UNK]:
-
-            return True
-        else:
-            return False
+        return maternal_helper.hiv_status in [NEG, IND, UNK] and self.func_bio_mother(
+            visit=visit)
 
     def func_show_hiv_test_form(
             self, visit=None, maternal_status_helper=None, **kwargs
@@ -456,7 +452,8 @@ class CaregiverPredicates(PredicateCollection):
         return visit.visit_code in ['1000M', '2000M'] and hiv_pos and is_bio_caregiver
 
     def func_interview_focus_group_interest(self, visit=None, **kwargs):
-        """ Returns true if there's no previous instance of interview focus and interview crf
+        """ Returns true if there's no previous instance of interview focus and
+        interview crf
             otherwise returns false. NOTE: checks across both version 1 and 2 of the crf.
         """
         interview_focus_crfs = ['interviewfocusgroupinterest',
