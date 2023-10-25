@@ -139,7 +139,12 @@ class CaregiverPredicates(PredicateCollection):
         except model_cls.DoesNotExist:
             return False
         else:
-            return model_obj.referred_to not in ['receiving_emotional_care', 'declined']
+            is_referred = model_obj.referred_to not in ['receiving_emotional_care', 'declined']
+            if visit.visit_code_sequence > 0:
+                referral_dt = model_obj.report_datetime.date()
+                visit_report_dt = visit.report_datetime.date()
+                return (visit_report_dt - referral_dt).days >= 7 and is_referred
+            return is_referred
 
     def func_gad_post_referral_required(self, visit=None, **kwargs):
 
