@@ -234,14 +234,20 @@ class ChildPredicates(PredicateCollection):
         preg_pos = self.func_mother_preg_pos(visit)
         if visit.visit_code == '2001':
             return preg_pos
-        try:
-            prev_arv_proph = self.infant_arv_proph_model_cls.objects.get(
-                child_visit=visit.previous_visit)
-        except self.infant_arv_proph_model_cls.DoesNotExist:
-            return False
-        else:
-            return (prev_arv_proph.took_art_proph == YES and
-                    visit.visit_code == '2002')
+        previous_visit = visit.previous_visit
+        is_required = True
+        while previous_visit:
+            try:
+                prev_arv_proph = self.infant_arv_proph_model_cls.objects.get(
+                    child_visit=previous_visit)
+            except self.infant_arv_proph_model_cls.DoesNotExist:
+                previous_visit = visit.previous_visit
+                continue
+            else:
+                status = prev_arv_proph.art_status
+                is_required = (status == 'in_progress')
+                break
+        return preg_pos and is_required
 
     def func_specimen_storage_consent(self, visit=None, **kwargs):
         """Returns True if participant's mother consented to repository blood specimen
