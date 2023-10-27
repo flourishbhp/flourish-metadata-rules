@@ -234,14 +234,16 @@ class ChildPredicates(PredicateCollection):
         preg_pos = self.func_mother_preg_pos(visit)
         if visit.visit_code == '2001':
             return preg_pos
-        previous_visit = visit.previous_visit
+        previous_appt = self.get_previous_appt_instance(visit.appointment)
+        previous_visit = getattr(previous_appt, 'visit', None)
         is_required = True
         while previous_visit:
             try:
                 prev_arv_proph = self.infant_arv_proph_model_cls.objects.get(
                     child_visit=previous_visit)
             except self.infant_arv_proph_model_cls.DoesNotExist:
-                previous_visit = visit.previous_visit
+                previous_appt = self.get_previous_appt_instance(previous_visit.appointment)
+                previous_visit = getattr(previous_appt, 'visit', None)
                 continue
             else:
                 status = prev_arv_proph.art_status
@@ -660,3 +662,14 @@ class ChildPredicates(PredicateCollection):
         return self.func_tbhivtesting(visit=visit) or self.func_tb_lab_results(
             visit=visit) or self.func_visit_screening(
             visit=visit) or self.func_diagnosed_with_tb(visit=visit)
+
+
+    def get_previous_appt_instance(self, appointment):
+
+        previous_appt = appointment.__class__.objects.filter(
+            subject_identifier=appointment.subject_identifier,
+            timepoint__lt=appointment.timepoint,
+            schedule_name__startswith=appointment.schedule_name[:7],
+            visit_code_sequence=0).order_by('timepoint').last()
+
+        return previous_appt or appointment.previous_by_timepoint
