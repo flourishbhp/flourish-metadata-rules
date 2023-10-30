@@ -236,12 +236,13 @@ class ChildPredicates(PredicateCollection):
             return preg_pos
         previous_appt = self.get_previous_appt_instance(visit.appointment)
         previous_visit = getattr(previous_appt, 'visit', None)
-        is_required = True
+        is_required = False
         while previous_visit:
             try:
                 prev_arv_proph = self.infant_arv_proph_model_cls.objects.get(
                     child_visit=previous_visit)
             except self.infant_arv_proph_model_cls.DoesNotExist:
+                is_required = True
                 previous_appt = self.get_previous_appt_instance(previous_visit.appointment)
                 previous_visit = getattr(previous_appt, 'visit', None)
                 continue
