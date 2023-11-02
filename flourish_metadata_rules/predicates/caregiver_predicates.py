@@ -8,6 +8,7 @@ from edc_metadata_rules import PredicateCollection
 from edc_reference.models import Reference
 
 from flourish_caregiver.helper_classes import MaternalStatusHelper
+from flourish_caregiver.load_cohort_schedules import flourish_schedules
 
 
 def get_difference(birth_date=None):
@@ -37,14 +38,33 @@ class CaregiverPredicates(PredicateCollection):
                 and visit.visit_code in ['1000M', '2000D']
                 and visit.visit_code_sequence == 0)
 
+    def get_child_subject_identifier_by_visit(self, visit):
+        onschedule_model = next((schedule.get('onschedule_model') for schedule in
+                                 flourish_schedules if schedule.get('schedule_name') ==
+                                 visit.schedule_name), None)
+        if onschedule_model:
+            onschedule_model_cls = django_apps.get_model(
+                onschedule_model)
+
+            try:
+                onschedule_obj = onschedule_model_cls.objects.get(
+                    subject_identifier=visit.subject_identifier,
+                    schedule_name=visit.schedule_name)
+            except onschedule_model_cls.DoesNotExist:
+                return None
+            else:
+                return onschedule_obj.child_subject_identifier
+
     def enrolled_pregnant(self, visit=None, **kwargs):
         """Returns true if expecting
         """
         enrollment_model = django_apps.get_model(
             f'{self.app_label}.antenatalenrollment')
+        child_subject_identifier = self.get_child_subject_identifier_by_visit(visit)
         try:
             enrollment_model.objects.get(
-                subject_identifier=visit.subject_identifier)
+                subject_identifier=visit.subject_identifier,
+                child_subject_identifier=child_subject_identifier)
         except enrollment_model.DoesNotExist:
             return False
         else:
@@ -139,7 +159,8 @@ class CaregiverPredicates(PredicateCollection):
         except model_cls.DoesNotExist:
             return False
         else:
-            is_referred = model_obj.referred_to not in ['receiving_emotional_care', 'declined']
+            is_referred = model_obj.referred_to not in ['receiving_emotional_care',
+                                                        'declined']
             if visit.visit_code_sequence > 0:
                 referral_dt = model_obj.report_datetime.date()
                 visit_report_dt = visit.report_datetime.date()
