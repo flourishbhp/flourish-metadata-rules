@@ -71,13 +71,15 @@ class CaregiverPredicates(PredicateCollection):
             return True
 
     def currently_pregnant(self, visit=None, **kwargs):
+        child_subject_identifier = self.get_child_subject_identifier_by_visit(visit)
 
         if self.enrolled_pregnant(visit=visit, **kwargs):
             maternal_delivery_cls = django_apps.get_model(
                 f'{self.app_label}.maternaldelivery')
             try:
                 maternal_delivery_cls.objects.get(
-                    subject_identifier=visit.subject_identifier)
+                    subject_identifier=visit.subject_identifier,
+                    child_subject_identifier=child_subject_identifier)
             except maternal_delivery_cls.DoesNotExist:
                 return True
         return False
