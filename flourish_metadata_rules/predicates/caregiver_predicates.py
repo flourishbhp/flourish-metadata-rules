@@ -8,7 +8,7 @@ from edc_metadata_rules import PredicateCollection
 from edc_reference.models import Reference
 
 from flourish_caregiver.helper_classes import MaternalStatusHelper
-from flourish_caregiver.load_cohort_schedules import flourish_schedules
+from flourish_caregiver.helper_classes.utils import get_child_subject_identifier_by_visit
 
 
 def get_difference(birth_date=None):
@@ -38,29 +38,12 @@ class CaregiverPredicates(PredicateCollection):
                 and visit.visit_code in ['1000M', '2000D']
                 and visit.visit_code_sequence == 0)
 
-    def get_child_subject_identifier_by_visit(self, visit):
-        onschedule_model = next((schedule.get('onschedule_model') for schedule in
-                                 flourish_schedules if schedule.get('schedule_name') ==
-                                 visit.schedule_name), None)
-        if onschedule_model:
-            onschedule_model_cls = django_apps.get_model(
-                onschedule_model)
-
-            try:
-                onschedule_obj = onschedule_model_cls.objects.get(
-                    subject_identifier=visit.subject_identifier,
-                    schedule_name=visit.schedule_name)
-            except onschedule_model_cls.DoesNotExist:
-                return None
-            else:
-                return onschedule_obj.child_subject_identifier
-
     def enrolled_pregnant(self, visit=None, **kwargs):
         """Returns true if expecting
         """
         enrollment_model = django_apps.get_model(
             f'{self.app_label}.antenatalenrollment')
-        child_subject_identifier = self.get_child_subject_identifier_by_visit(visit)
+        child_subject_identifier = get_child_subject_identifier_by_visit(visit)
         try:
             enrollment_model.objects.get(
                 subject_identifier=visit.subject_identifier,
@@ -71,7 +54,7 @@ class CaregiverPredicates(PredicateCollection):
             return True
 
     def currently_pregnant(self, visit=None, **kwargs):
-        child_subject_identifier = self.get_child_subject_identifier_by_visit(visit)
+        child_subject_identifier = get_child_subject_identifier_by_visit(visit)
 
         if self.enrolled_pregnant(visit=visit, **kwargs):
             maternal_delivery_cls = django_apps.get_model(
