@@ -202,6 +202,7 @@ class ChildPredicates(PredicateCollection):
 
         try:
             maternal_delivery_cls.objects.get(
+                child_subject_identifier=visit.subject_identifier,
                 subject_identifier=maternal_subject_id,
                 live_infants_to_register__gte=1)
         except maternal_delivery_cls.DoesNotExist:
@@ -565,6 +566,7 @@ class ChildPredicates(PredicateCollection):
             subject_identifier=visit.subject_identifier)
         try:
             enrollment_model.objects.get(
+                child_subject_identifier=visit.subject_identifier,
                 subject_identifier=maternal_subject_id)
         except enrollment_model.DoesNotExist:
             return False
