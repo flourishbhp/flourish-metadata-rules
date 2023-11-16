@@ -10,3 +10,4 @@ from .tb_engagement_rules import TbEngagementRuleGroup
 from .tb_interview_rules import TbInterviewRuleGroup
 from .tb_schedule_rules import TbScheduleRuleGroup
 from .interview_focus_group_interest_rules import InterviewFocusGroupInterestRuleGroup
+from .relationship_and_father_involvement_rules import RelationshipFatherInvolvementRuleGroup
