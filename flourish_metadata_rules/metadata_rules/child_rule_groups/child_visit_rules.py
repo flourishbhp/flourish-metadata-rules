@@ -68,7 +68,7 @@ class ChildVisitRuleGroup(CrfRuleGroup):
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.childphqdepressionscreening',
                        f'{app_label}.childgadanxietyscreening', ])
-    
+
     older_than_11 = CrfRule(
         predicate=pc.func_brief2_self_required,
         consequence=REQUIRED,
@@ -158,7 +158,7 @@ class ChildVisitRuleGroup(CrfRuleGroup):
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.childphqpostreferral'])
-    
+
     adol_tb_results = CrfRule(
         predicate=pc.func_tb_lab_results_exist,
         consequence=REQUIRED,
@@ -166,7 +166,13 @@ class ChildVisitRuleGroup(CrfRuleGroup):
         target_models=[f'{app_label}.tblabresultsadol',]
     )
 
+    child_social_work_referral = CrfRule(
+        predicate=pc.relationship_father_involvement_yes,
+        consequence=REQUIRED,
+        alternative=NOT_REQUIRED,
+        target_models=[f'{app_label}.childsocialworkreferral',]
+    )
+
     class Meta:
         app_label = app_label
         source_model = f'{app_label}.childvisit'
-        

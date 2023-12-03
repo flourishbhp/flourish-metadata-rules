@@ -31,6 +31,7 @@ class ChildPredicates(PredicateCollection):
     infant_hiv_test_model = f'{app_label}.infanthivtesting'
     tb_hivtesting_model = f'{app_label}.hivtestingadol'
     infant_arv_proph_model = f'{app_label}.infantarvprophylaxis'
+    relationship_father_involvement_model = f'{maternal_app_label}.relationshipfatherinvolvement'
 
     @property
     def tb_presence_model_cls(self):
@@ -67,6 +68,10 @@ class ChildPredicates(PredicateCollection):
     @property
     def infant_arv_proph_model_cls(self):
         return django_apps.get_model(self.infant_arv_proph_model)
+
+    @property
+    def relationship_father_involvement_model_cls(self):
+        return django_apps.get_model(self.relationship_father_involvement_model)
 
     def func_hiv_exposed(self, visit=None, **kwargs):
         """
@@ -202,6 +207,7 @@ class ChildPredicates(PredicateCollection):
 
         try:
             maternal_delivery_cls.objects.get(
+                child_subject_identifier=visit.subject_identifier,
                 subject_identifier=maternal_subject_id,
                 live_infants_to_register__gte=1)
         except maternal_delivery_cls.DoesNotExist:
@@ -214,7 +220,8 @@ class ChildPredicates(PredicateCollection):
         birth data has not been entered
         """
         bith_data_model = f'{self.app_label}.birthdata'
-        prev_bith_data_obj = self.previous_model(visit=visit, model=bith_data_model)
+        prev_bith_data_obj = self.previous_model(
+            visit=visit, model=bith_data_model)
         return self.func_consent_study_pregnant(visit=visit) and not prev_bith_data_obj
 
     def func_mother_preg_pos(self, visit=None, **kwargs):
@@ -243,7 +250,8 @@ class ChildPredicates(PredicateCollection):
                     child_visit=previous_visit)
             except self.infant_arv_proph_model_cls.DoesNotExist:
                 is_required = True
-                previous_appt = self.get_previous_appt_instance(previous_visit.appointment)
+                previous_appt = self.get_previous_appt_instance(
+                    previous_visit.appointment)
                 previous_visit = getattr(previous_appt, 'visit', None)
                 continue
             else:
@@ -565,6 +573,7 @@ class ChildPredicates(PredicateCollection):
             subject_identifier=visit.subject_identifier)
         try:
             enrollment_model.objects.get(
+                child_subject_identifier=visit.subject_identifier,
                 subject_identifier=maternal_subject_id)
         except enrollment_model.DoesNotExist:
             return False
@@ -600,14 +609,16 @@ class ChildPredicates(PredicateCollection):
         if infant_feeding_crf and infant_feeding_crf.dt_weaned:
             hiv_test_6wks_post_wean = self.infant_hiv_test_model_cls.objects.filter(
                 child_visit__subject_identifier=child_subject_identifier,
-                received_date__gte=infant_feeding_crf.dt_weaned + timedelta(weeks=6)
+                received_date__gte=infant_feeding_crf.dt_weaned +
+                timedelta(weeks=6)
             ).exists()
 
         child_age = self.get_child_age(visit=visit)
 
         child_age_in_months = (child_age.years * 12) + child_age.months
 
-        hiv_status = self.get_latest_maternal_hiv_status(visit=visit).hiv_status
+        hiv_status = self.get_latest_maternal_hiv_status(
+            visit=visit).hiv_status
         if (hiv_status == POS and self.func_consent_study_pregnant(visit=visit)):
             if (self.newly_enrolled(visit=visit)
                     and visit.visit_code in ['2001', '2003', '3000']):
@@ -619,8 +630,8 @@ class ChildPredicates(PredicateCollection):
             continuing_to_bf = getattr(
                 infant_feeding_crf, 'continuing_to_bf', None)
 
-            return  continuing_to_bf == YES or (continuing_to_bf == NO and not
-            hiv_test_6wks_post_wean)
+            return continuing_to_bf == YES or (continuing_to_bf == NO and not
+                                               hiv_test_6wks_post_wean)
 
         return False
 
@@ -664,7 +675,6 @@ class ChildPredicates(PredicateCollection):
             visit=visit) or self.func_visit_screening(
             visit=visit) or self.func_diagnosed_with_tb(visit=visit)
 
-
     def get_previous_appt_instance(self, appointment):
 
         previous_appt = appointment.__class__.objects.filter(
@@ -674,3 +684,15 @@ class ChildPredicates(PredicateCollection):
             visit_code_sequence=0).order_by('timepoint').last()
 
         return previous_appt or appointment.previous_by_timepoint
+
+    def relationship_father_involvement_yes(self, visit=None, **kwargs):
+        maternal_identifier = child_utils.caregiver_subject_identifier(
+            subject_identifier=visit.subject_identifier)
+        try:
+            relationship_father_involvemnt_obj = self.relationship_father_involvement_model_cls.objects.filter(
+                maternal_visit__subject_identifier=maternal_identifier
+            ).latest('report_datetime')
+        except self.relationship_father_involvement_model_cls.DoesNotExist:
+            return False
+        else:
+            return relationship_father_involvemnt_obj.conunselling_referral == YES
