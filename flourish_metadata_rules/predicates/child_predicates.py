@@ -684,15 +684,3 @@ class ChildPredicates(PredicateCollection):
             visit_code_sequence=0).order_by('timepoint').last()
 
         return previous_appt or appointment.previous_by_timepoint
-
-    def relationship_father_involvement_yes(self, visit=None, **kwargs):
-        maternal_identifier = child_utils.caregiver_subject_identifier(
-            subject_identifier=visit.subject_identifier)
-        try:
-            relationship_father_involvemnt_obj = self.relationship_father_involvement_model_cls.objects.filter(
-                maternal_visit__subject_identifier=maternal_identifier
-            ).latest('report_datetime')
-        except self.relationship_father_involvement_model_cls.DoesNotExist:
-            return False
-        else:
-            return relationship_father_involvemnt_obj.conunselling_referral == YES

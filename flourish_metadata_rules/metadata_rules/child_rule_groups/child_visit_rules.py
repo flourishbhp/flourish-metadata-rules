@@ -166,13 +166,6 @@ class ChildVisitRuleGroup(CrfRuleGroup):
         target_models=[f'{app_label}.tblabresultsadol',]
     )
 
-    child_social_work_referral = CrfRule(
-        predicate=pc.relationship_father_involvement_yes,
-        consequence=REQUIRED,
-        alternative=NOT_REQUIRED,
-        target_models=[f'{app_label}.childsocialworkreferral',]
-    )
-
     class Meta:
         app_label = app_label
         source_model = f'{app_label}.childvisit'
