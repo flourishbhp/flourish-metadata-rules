@@ -4,7 +4,7 @@ from dateutil.relativedelta import relativedelta
 from django.apps import apps as django_apps
 from django.db.models import Q
 from edc_base.utils import age, get_utcnow
-from edc_constants.constants import FEMALE, IND, NO, OTHER, PENDING, POS, YES
+from edc_constants.constants import FEMALE, IND, NO, PENDING, POS, YES
 from edc_metadata_rules import PredicateCollection
 from edc_reference.models import Reference
 
@@ -523,16 +523,14 @@ class ChildPredicates(PredicateCollection):
             hiv_test_6wks_post_wean = self.infant_hiv_test_model_cls.objects.filter(
                 child_visit__subject_identifier=child_subject_identifier,
                 received_date__gte=infant_feeding_crf.dt_weaned +
-                timedelta(weeks=6)
+                                   timedelta(weeks=6)
             ).exists()
 
         child_age = self.get_child_age(visit=visit)
 
         child_age_in_months = (child_age.years * 12) + child_age.months
 
-        hiv_status = self.get_latest_maternal_hiv_status(
-            visit=visit).hiv_status
-
+        hiv_status = self.get_latest_maternal_hiv_status(visit=visit).hiv_status
         if (hiv_status == POS and self.func_consent_study_pregnant(visit=visit)):
             if (self.newly_enrolled(visit=visit)
                     and visit.visit_code in ['2001', '2003', '3000', '3000A', '3000B',
@@ -546,7 +544,7 @@ class ChildPredicates(PredicateCollection):
                 infant_feeding_crf, 'continuing_to_bf', None)
 
             return continuing_to_bf == YES or (continuing_to_bf == NO and not
-                                               hiv_test_6wks_post_wean)
+            hiv_test_6wks_post_wean)
 
         return False
 
