@@ -1,4 +1,3 @@
-from .caregiver_tb_referral_rules import CaregiverTBReferralRuleGroup
 from .edinburg_depression_screening_rules import EdinburgDeprScreeningRuleGroup
 from .edinburg_referral_rules import EdinburgReferralRuleGroup
 from .gad_anxiety_referral_rules import GAD7ReferralRuleGroup

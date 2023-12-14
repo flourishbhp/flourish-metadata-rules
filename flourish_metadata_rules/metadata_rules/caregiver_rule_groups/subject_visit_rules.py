@@ -74,13 +74,13 @@ class MaternalVisitRuleGroup(CrfRuleGroup):
         predicate=pc.func_show_hiv_test_form,
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
-        target_models=[f'{app_label}.hivrapidtestcounseling',])
-    
+        target_models=[f'{app_label}.hivrapidtestcounseling', ])
+
     post_hiv_test = CrfRule(
         predicate=pc.func_post_hiv_rapid_test,
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
-        target_models=[f'{app_label}.posthivrapidtestandconseling',])
+        target_models=[f'{app_label}.posthivrapidtestandconseling', ])
 
     breast_feeding = CrfRule(
         predicate=pc.func_show_b_feeding_form,
@@ -126,6 +126,12 @@ class MaternalVisitRuleGroup(CrfRuleGroup):
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.maternalarvadherence']
     )
+
+    caregiver_tb_screening = CrfRule(
+        predicate=pc.func_caregiver_tb_screening,
+        consequence=REQUIRED,
+        alternative=NOT_REQUIRED,
+        target_models=[f'{app_label}.caregivertbscreening', ])
 
     class Meta:
         app_label = app_label
