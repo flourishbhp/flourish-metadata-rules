@@ -1,4 +1,3 @@
-from .caregiver_rule_groups import CaregiverTBReferralRuleGroup
 from .caregiver_rule_groups import EdinburgDeprScreeningRuleGroup
 from .caregiver_rule_groups import EdinburgReferralRuleGroup
 from .caregiver_rule_groups import GAD7AnxietyScreeningRuleGroup
@@ -16,7 +15,6 @@ from .child_rule_groups import ChildGAD7ReferralRuleGroup
 from .child_rule_groups import ChildPHQ9DeprScreeningRuleGroup
 from .child_rule_groups import ChildPHQ9ReferralRuleGroup
 from .child_rule_groups import ChildSocioDemographicRuleGroup
-from .child_rule_groups import ChildTBReferralRuleGroup
 from .child_rule_groups import ChildVisitReqRuleGroup
 from .child_rule_groups import ChildVisitRuleGroup
 from .child_rule_groups import CongenitalAnomaliesRuleGroup

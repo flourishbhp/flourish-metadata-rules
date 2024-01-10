@@ -166,6 +166,19 @@ class ChildVisitRuleGroup(CrfRuleGroup):
         target_models=[f'{app_label}.tblabresultsadol',]
     )
 
+    child_tb_screening = CrfRule(
+        predicate=pc.func_child_tb_screening_required,
+        consequence=REQUIRED,
+        alternative=NOT_REQUIRED,
+        target_models=[f'{app_label}.childtbscreening',]
+    )
+
+    infant_hiv_testing = CrfRule(
+        predicate=pc.func_hiv_infant_testing,
+        consequence=REQUIRED,
+        alternative=NOT_REQUIRED,
+        target_models=[f'{app_label}.infanthivtesting', ])
+
     class Meta:
         app_label = app_label
         source_model = f'{app_label}.childvisit'
