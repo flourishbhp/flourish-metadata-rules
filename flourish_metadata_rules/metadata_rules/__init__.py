@@ -2,7 +2,6 @@ from .caregiver_rule_groups import EdinburgDeprScreeningRuleGroup
 from .caregiver_rule_groups import EdinburgReferralRuleGroup
 from .caregiver_rule_groups import GAD7AnxietyScreeningRuleGroup
 from .caregiver_rule_groups import GAD7ReferralRuleGroup
-from .caregiver_rule_groups import HITSScreeningRuleGroup
 from .caregiver_rule_groups import MaternalVisitReqRuleGroup
 from .caregiver_rule_groups import MaternalVisitRuleGroup
 from .caregiver_rule_groups import PHQ9DeprScreeningRuleGroup
