@@ -709,3 +709,20 @@ class ChildPredicates(PredicateCollection):
         model = 'flourish_child.infanthivtesting9months'
         return (self.hiv_test_required('9_months', visit) or
                 self.func_results_on_unscheduled(model=model, visit=visit))
+
+    def func_child_tb_referral_outcome(self, visit=None, **kwargs):
+        """Returns true if caregiver TB referral outcome crf is required
+        """
+        prev_child_tb_referral_objs = Reference.objects.filter(
+            model=f'{self.app_label}.childtbreferral',
+            report_datetime__lt=visit.report_datetime,
+            identifier=visit.subject_identifier, )
+        prev_child_tb_referral_outcome_objs = Reference.objects.filter(
+            model=f'{self.app_label}.childtbreferraloutcome',
+            report_datetime__lt=visit.report_datetime,
+            identifier=visit.subject_identifier, )
+
+        if prev_child_tb_referral_objs.exists():
+            return prev_child_tb_referral_objs.count() > \
+                   prev_child_tb_referral_outcome_objs.count()
+        return False

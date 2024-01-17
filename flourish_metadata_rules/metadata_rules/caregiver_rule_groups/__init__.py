@@ -15,3 +15,4 @@ from .tb_interview_rules import TbInterviewRuleGroup
 from .tb_schedule_rules import TbScheduleRuleGroup
 from .caregiver_cage_aid_rules import CaregiverCageAidRuleGroup
 from .hit_screening_rules import HitsScreeningRuleGroup
+from .tb_screening_rules import TbScreeningRules

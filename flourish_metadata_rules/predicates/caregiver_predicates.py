@@ -442,8 +442,8 @@ class CaregiverPredicates(PredicateCollection):
                             child_age = age(
                                 child_consent.child_dob, get_utcnow())
                             child_age_in_months = ((
-                                child_age.years * 12) +
-                                child_age.months)
+                                                           child_age.years * 12) +
+                                                   child_age.months)
                             if child_age_in_months < 2:
                                 try:
                                     last_tb_bj = tb_screening_form_objs.latest(
@@ -550,7 +550,7 @@ class CaregiverPredicates(PredicateCollection):
         return False
 
     def func_caregiver_tb_screening(self, visit=None, **kwargs):
-        """Returns true if caregiver TB screening crf is required
+        """Returns true if caregiver TB screening crf are required
         """
         caregiver_tb_screening_model_cls = django_apps.get_model(
             f'{self.app_label}.caregivertbscreening')
@@ -626,3 +626,20 @@ class CaregiverPredicates(PredicateCollection):
                 return (birth_form_obj.feeding_mode == BREASTFEED_ONLY or
                         birth_form_obj.feeding_mode == 'Both breastfeeding and formula '
                                                        'feeding')
+
+    def func_caregiver_tb_referral_outcome(self, visit=None, **kwargs):
+        """Returns true if caregiver TB referral outcome crf is required
+        """
+        prev_caregiver_tb_referral_objs = Reference.objects.filter(
+            model=f'{self.app_label}.tbreferralcaregiver',
+            report_datetime__lt=visit.report_datetime,
+            identifier=visit.subject_identifier, )
+        prev_caregiver_tb_referral_outcome_objs = Reference.objects.filter(
+            model=f'{self.app_label}.caregivertbreferraloutcome',
+            report_datetime__lt=visit.report_datetime,
+            identifier=visit.subject_identifier, )
+
+        if prev_caregiver_tb_referral_objs.exists():
+            return prev_caregiver_tb_referral_objs.count() > \
+                   prev_caregiver_tb_referral_outcome_objs.count()
+        return False

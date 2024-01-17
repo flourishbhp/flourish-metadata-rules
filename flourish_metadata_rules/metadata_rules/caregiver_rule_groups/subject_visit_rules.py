@@ -156,6 +156,12 @@ class MaternalVisitRuleGroup(CrfRuleGroup):
                        f'{app_label}.breastmilk6months'],
     )
 
+    caregiver_tb_referral_outcome = CrfRule(
+        predicate=pc.func_caregiver_tb_referral_outcome,
+        consequence=REQUIRED,
+        alternative=NOT_REQUIRED,
+        target_models=[f'{app_label}.caregivertbreferraloutcome', ])
+
     class Meta:
         app_label = app_label
         source_model = f'{app_label}.maternalvisit'
