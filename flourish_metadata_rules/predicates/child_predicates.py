@@ -4,7 +4,7 @@ from dateutil.relativedelta import relativedelta
 from django.apps import apps as django_apps
 from django.db.models import Q
 from edc_base.utils import age, get_utcnow
-from edc_constants.constants import FEMALE, IND, NO, POS, YES
+from edc_constants.constants import FEMALE, IND, NO, PENDING, POS, YES
 from edc_metadata_rules import PredicateCollection
 from edc_reference.models import Reference
 
@@ -31,7 +31,8 @@ class ChildPredicates(PredicateCollection):
     infant_hiv_test_model = f'{app_label}.infanthivtesting'
     tb_hivtesting_model = f'{app_label}.hivtestingadol'
     infant_arv_proph_model = f'{app_label}.infantarvprophylaxis'
-    relationship_father_involvement_model = f'{maternal_app_label}.relationshipfatherinvolvement'
+    relationship_father_involvement_model = (
+        f'{maternal_app_label}.relationshipfatherinvolvement')
 
     @property
     def tb_presence_model_cls(self):
@@ -235,7 +236,8 @@ class ChildPredicates(PredicateCollection):
     def func_preg_pos_not_fu(self, visit=None, **kwargs):
         """ Returns True if enrolled pregnant, and visit is not FU.
         """
-        return self.func_mother_preg_pos(visit) and not visit.visit_code == '3000'
+        fu_visit_codes = ['3000', '3000A', '3000B', '3000C', ]
+        return self.func_mother_preg_pos(visit) and not visit.visit_code in fu_visit_codes
 
     def func_arv_proph_quart(self, visit=None, **kwargs):
         preg_pos = self.func_mother_preg_pos(visit)
@@ -610,18 +612,19 @@ class ChildPredicates(PredicateCollection):
             hiv_test_6wks_post_wean = self.infant_hiv_test_model_cls.objects.filter(
                 child_visit__subject_identifier=child_subject_identifier,
                 received_date__gte=infant_feeding_crf.dt_weaned +
-                timedelta(weeks=6)
+                                   timedelta(weeks=6)
             ).exists()
 
         child_age = self.get_child_age(visit=visit)
 
         child_age_in_months = (child_age.years * 12) + child_age.months
 
-        hiv_status = self.get_latest_maternal_hiv_status(
-            visit=visit).hiv_status
+        hiv_status = self.get_latest_maternal_hiv_status(visit=visit).hiv_status
+
         if (hiv_status == POS and self.func_consent_study_pregnant(visit=visit)):
             if (self.newly_enrolled(visit=visit)
-                    and visit.visit_code in ['2001', '2003', '3000']):
+                    and visit.visit_code in ['2001', '2003', '3000', '3000A', '3000B',
+                                             '3000C']):
                 return True
 
             if visit.visit_code == '2002':
@@ -631,7 +634,7 @@ class ChildPredicates(PredicateCollection):
                 infant_feeding_crf, 'continuing_to_bf', None)
 
             return continuing_to_bf == YES or (continuing_to_bf == NO and not
-                                               hiv_test_6wks_post_wean)
+            hiv_test_6wks_post_wean)
 
         return False
 
@@ -685,14 +688,19 @@ class ChildPredicates(PredicateCollection):
 
         return previous_appt or appointment.previous_by_timepoint
 
-    def relationship_father_involvement_yes(self, visit=None, **kwargs):
-        maternal_identifier = child_utils.caregiver_subject_identifier(
-            subject_identifier=visit.subject_identifier)
-        try:
-            relationship_father_involvemnt_obj = self.relationship_father_involvement_model_cls.objects.filter(
-                maternal_visit__subject_identifier=maternal_identifier
-            ).latest('report_datetime')
-        except self.relationship_father_involvement_model_cls.DoesNotExist:
-            return False
-        else:
-            return relationship_father_involvemnt_obj.conunselling_referral == YES
+    def func_child_tb_screening_required(self, visit=None, **kwargs):
+        """Returns true if child tb screening is required
+        """
+        child_tb_scrining_model = f'{self.app_label}.childtbscreening'
+        child_tb_scrining_model_cls = django_apps.get_model(
+            child_tb_scrining_model)
+        latest_obj = child_tb_scrining_model_cls.objects.filter(
+            child_visit__subject_identifier=visit.subject_identifier
+        ).order_by('-report_datetime').first()
+        tests = ['chest_xray_results',
+                 'sputum_sample_results',
+                 'blood_test_results',
+                 'urine_test_results',
+                 'skin_test_results']
+        return any([getattr(latest_obj, field, None) == PENDING
+                    for field in tests]) if latest_obj else True
