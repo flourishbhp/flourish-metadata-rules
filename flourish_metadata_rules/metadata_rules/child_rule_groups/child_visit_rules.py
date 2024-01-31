@@ -1,6 +1,6 @@
 from edc_constants.constants import YES
 from edc_metadata import NOT_REQUIRED, REQUIRED
-from edc_metadata_rules import CrfRule, CrfRuleGroup, register, P
+from edc_metadata_rules import CrfRule, CrfRuleGroup, P, register
 
 from ...predicates import ChildPredicates
 
@@ -10,7 +10,6 @@ pc = ChildPredicates()
 
 @register()
 class ChildVisitRuleGroup(CrfRuleGroup):
-
     birth_exam = CrfRule(
         predicate=P('is_present', 'eq', YES),
         consequence=REQUIRED,
@@ -163,14 +162,14 @@ class ChildVisitRuleGroup(CrfRuleGroup):
         predicate=pc.func_tb_lab_results_exist,
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
-        target_models=[f'{app_label}.tblabresultsadol',]
+        target_models=[f'{app_label}.tblabresultsadol', ]
     )
 
     child_tb_screening = CrfRule(
         predicate=pc.func_child_tb_screening_required,
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
-        target_models=[f'{app_label}.childtbscreening',]
+        target_models=[f'{app_label}.childtbscreening', ]
     )
 
     infant_hiv_testing = CrfRule(
@@ -178,6 +177,12 @@ class ChildVisitRuleGroup(CrfRuleGroup):
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.infanthivtesting', ])
+
+    infant_arv_prophylaxispost_follow_up = CrfRule(
+        predicate=pc.func_infant_arv_prophylaxispost_follow_up_required,
+        consequence=REQUIRED,
+        alternative=NOT_REQUIRED,
+        target_models=[f'{app_label}.infantarvprophylaxispostfollow', ])
 
     class Meta:
         app_label = app_label
