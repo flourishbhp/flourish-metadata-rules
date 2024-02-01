@@ -704,3 +704,20 @@ class ChildPredicates(PredicateCollection):
                  'skin_test_results']
         return any([getattr(latest_obj, field, None) == PENDING
                     for field in tests]) if latest_obj else True
+
+    def func_child_tb_referral_outcome(self, visit=None, **kwargs):
+        """Returns true if caregiver TB referral outcome crf is required
+        """
+        prev_child_tb_referral_objs = Reference.objects.filter(
+            model=f'{self.app_label}.childtbreferral',
+            report_datetime__lt=visit.report_datetime,
+            identifier=visit.subject_identifier, )
+        prev_child_tb_referral_outcome_objs = Reference.objects.filter(
+            model=f'{self.app_label}.childtbreferraloutcome',
+            report_datetime__lt=visit.report_datetime,
+            identifier=visit.subject_identifier, )
+
+        if prev_child_tb_referral_objs.exists():
+            return prev_child_tb_referral_objs.count() > \
+                prev_child_tb_referral_outcome_objs.count()
+        return False
