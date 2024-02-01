@@ -6,26 +6,22 @@ from edc_base.utils import get_utcnow
 
 
 class MaternalDataset(BaseUuidModel):
-
     subject_identifier = models.CharField(max_length=25)
 
     delivdt = models.DateField(null=True, blank=True)
 
 
 class ChildDataset(BaseUuidModel):
-
     subject_identifier = models.CharField(max_length=25)
 
 
 class ScreeningPriorBhpParticipants(BaseUuidModel):
-
     screening_identifier = models.CharField(max_length=25)
 
     flourish_participation = models.CharField(max_length=25)
 
 
 class SubjectConsent(BaseUuidModel):
-
     consent_datetime = models.DateTimeField(
         default=get_utcnow)
 
@@ -37,7 +33,6 @@ class SubjectConsent(BaseUuidModel):
 
 
 class ChildAssent(BaseUuidModel):
-
     consent_datetime = models.DateTimeField(
         default=get_utcnow)
 
@@ -49,7 +44,6 @@ class ChildAssent(BaseUuidModel):
 
 
 class ChildDummySubjectConsent(BaseUuidModel):
-
     consent_datetime = models.DateTimeField(
         default=get_utcnow)
 
@@ -67,17 +61,14 @@ class ChildDummySubjectConsent(BaseUuidModel):
 
 
 class AntenatalEnrollment(BaseUuidModel):
-
     subject_identifier = models.CharField(max_length=25)
 
 
 class Appointment(BaseUuidModel):
-
     subject_identifier = models.CharField(max_length=25)
 
 
 class MaternalDelivery(BaseUuidModel):
-
     subject_identifier = models.CharField(max_length=25)
 
     delivery_datetime = models.DateTimeField(null=True, blank=True)
@@ -86,7 +77,6 @@ class MaternalDelivery(BaseUuidModel):
 
 
 class MaternalVisit(BaseUuidModel):
-
     appointment = models.ForeignKey(Appointment,
                                     on_delete=PROTECT)
 
@@ -94,15 +84,16 @@ class MaternalVisit(BaseUuidModel):
 
 
 class ChildVisit(BaseUuidModel):
-
     appointment = models.ForeignKey(Appointment,
                                     on_delete=PROTECT)
+
+    report_datetime = models.DateTimeField(
+        default=get_utcnow())
 
     subject_identifier = models.CharField(max_length=25)
 
 
 class CaregiverChildConsent(BaseUuidModel):
-
     consent_datetime = models.DateTimeField(
         default=get_utcnow)
 
@@ -112,7 +103,6 @@ class CaregiverChildConsent(BaseUuidModel):
 
 
 class CyhuuPreEnrollment(BaseUuidModel):
-
     maternal_visit = models.ForeignKey(MaternalVisit,
                                        on_delete=PROTECT)
 
@@ -120,15 +110,15 @@ class CyhuuPreEnrollment(BaseUuidModel):
 
 
 class HivRapidTestCounseling(BaseUuidModel):
-
     maternal_visit = models.ForeignKey(MaternalVisit,
                                        on_delete=PROTECT)
 
     subject_identifier = models.CharField(max_length=25)
 
     result = models.CharField(max_length=3)
-class RelationshipFatherInvolvement(BaseUuidModel):
 
+
+class RelationshipFatherInvolvement(BaseUuidModel):
     maternal_visit = models.ForeignKey(MaternalVisit,
                                        on_delete=PROTECT)
 

@@ -704,3 +704,11 @@ class ChildPredicates(PredicateCollection):
                  'skin_test_results']
         return any([getattr(latest_obj, field, None) == PENDING
                     for field in tests]) if latest_obj else True
+
+    def func_infant_arv_prophylaxispost_follow_up_required(self, visit=None, **kwargs):
+        """Returns true if infantarvprophylaxispostfollowup is required
+        """
+        infant_arv_proph_model = f'{self.app_label}.infantarvprophylaxispostfollow'
+
+        return not self.previous_model(visit=visit, model=infant_arv_proph_model) or \
+            visit.visit_code in ['2001', '2003']
