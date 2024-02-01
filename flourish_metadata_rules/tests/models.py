@@ -87,6 +87,9 @@ class ChildVisit(BaseUuidModel):
     appointment = models.ForeignKey(Appointment,
                                     on_delete=PROTECT)
 
+    report_datetime = models.DateTimeField(
+        default=get_utcnow())
+
     subject_identifier = models.CharField(max_length=25)
 
 

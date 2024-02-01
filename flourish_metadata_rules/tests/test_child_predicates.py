@@ -1,13 +1,15 @@
 from dateutil.relativedelta import relativedelta
-from django.test import TestCase, tag
+from django.test import tag, TestCase
 from edc_base.tests import SiteTestCaseMixin
 from edc_base.utils import get_utcnow
 from edc_facility.import_holidays import import_holidays
 from edc_reference import LongitudinalRefset
 from edc_reference.tests import ReferenceTestHelper
 
-from .models import AntenatalEnrollment, ChildAssent, CaregiverChildConsent
-from .models import MaternalDelivery, ChildDummySubjectConsent
+from .models import (AntenatalEnrollment, Appointment, CaregiverChildConsent,
+                     ChildAssent, \
+                     ChildVisit)
+from .models import ChildDummySubjectConsent, MaternalDelivery
 from ..predicates import ChildPredicates
 
 
@@ -86,7 +88,7 @@ class TestChildPredicates(SiteTestCaseMixin, TestCase):
 
         self.assertTrue(
             self.pc.func_12_years_older(self.infant_visits[0], ))
-          
+
     def test_func_11_years_older(self):
         ChildAssent.objects.create(
             subject_identifier=self.subject_identifier,
@@ -134,6 +136,22 @@ class TestChildPredicates(SiteTestCaseMixin, TestCase):
         self.assertTrue(
             self.pc.func_36_months_younger(self.infant_visits[0], ))
 
+    @tag('tiapf')
+    def test_infant_arv_prophylaxispost_follow_up_required(self):
+        ChildDummySubjectConsent.objects.create(
+            subject_identifier=self.subject_identifier,
+            dob=(get_utcnow() - relativedelta(months=12)).date())
+
+        appointment = Appointment.objects.create(
+            subject_identifier=self.subject_identifier)
+
+        child_visit = ChildVisit.objects.create(
+            appointment=appointment,
+            subject_identifier=self.subject_identifier)
+
+        self.assertTrue(
+            self.pc.func_infant_arv_prophylaxispost_follow_up_required(child_visit))
+
     @property
     def infant_visits(self):
         return LongitudinalRefset(
@@ -141,4 +159,4 @@ class TestChildPredicates(SiteTestCaseMixin, TestCase):
             visit_model=self.visit_model,
             name=self.visit_model,
             reference_model_cls=self.reference_model
-            ).order_by('report_datetime')
+        ).order_by('report_datetime')

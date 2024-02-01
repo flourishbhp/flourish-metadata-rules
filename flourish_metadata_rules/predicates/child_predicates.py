@@ -719,5 +719,13 @@ class ChildPredicates(PredicateCollection):
 
         if prev_child_tb_referral_objs.exists():
             return prev_child_tb_referral_objs.count() > \
-                   prev_child_tb_referral_outcome_objs.count()
+                prev_child_tb_referral_outcome_objs.count()
         return False
+
+    def func_infant_arv_prophylaxispost_follow_up_required(self, visit=None, **kwargs):
+        """Returns true if infantarvprophylaxispostfollowup is required
+        """
+        infant_arv_proph_model = f'{self.app_label}.infantarvprophylaxispostfollow'
+
+        return not self.previous_model(visit=visit, model=infant_arv_proph_model) or \
+            visit.visit_code in ['2001', '2003']
