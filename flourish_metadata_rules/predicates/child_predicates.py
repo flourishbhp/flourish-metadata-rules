@@ -4,7 +4,7 @@ from dateutil.relativedelta import relativedelta
 from django.apps import apps as django_apps
 from django.db.models import Q
 from edc_base.utils import age, get_utcnow
-from edc_constants.constants import FEMALE, IND, NO, PENDING, POS, YES
+from edc_constants.constants import FEMALE, IND, NO, PENDING, POS, YES, OTHER
 from edc_metadata_rules import PredicateCollection
 from edc_reference.models import Reference
 
@@ -704,3 +704,66 @@ class ChildPredicates(PredicateCollection):
                  'skin_test_results']
         return any([getattr(latest_obj, field, None) == PENDING
                     for field in tests]) if latest_obj else True
+
+    def hiv_test_birth_required(self, visit=None, **kwargs):
+        try:
+            infant_hiv_testing = self.infant_hiv_test_model_cls.objects.get(
+                child_visit=visit)
+        except self.infant_hiv_test_model_cls.DoesNotExist:
+            return False
+        else:
+            return True if 'birth' in [i.short_name for i in
+                                       infant_hiv_testing.test_visit.all()] else False
+
+    def hiv_test_other_required(self, visit=None, **kwargs):
+        try:
+            infant_hiv_testing = self.infant_hiv_test_model_cls.objects.get(
+                child_visit=visit)
+        except self.infant_hiv_test_model_cls.DoesNotExist:
+            return False
+        else:
+            return True if OTHER in [i.short_name for i in
+                                     infant_hiv_testing.test_visit.all()] else False
+
+    def hiv_test_18_months_required(self, visit=None, **kwargs):
+        try:
+            infant_hiv_testing = self.infant_hiv_test_model_cls.objects.get(
+                child_visit=visit)
+        except self.infant_hiv_test_model_cls.DoesNotExist:
+            return False
+        else:
+            return True if '18_months' in [i.short_name for i in
+                                           infant_hiv_testing.test_visit.all()] else False
+
+    def hiv_test_after_breastfeeding_required(self, visit=None, **kwargs):
+        try:
+            infant_hiv_testing = self.infant_hiv_test_model_cls.objects.get(
+                child_visit=visit)
+        except self.infant_hiv_test_model_cls.DoesNotExist:
+            return False
+        else:
+            return True if 'after_breastfeeding' in [i.short_name for i in
+                                                     infant_hiv_testing.test_visit.all(
+
+                                                     )] else False
+
+    def hiv_test_6_to_8_weeks_required(self, visit=None, **kwargs):
+        try:
+            infant_hiv_testing = self.infant_hiv_test_model_cls.objects.get(
+                child_visit=visit)
+        except self.infant_hiv_test_model_cls.DoesNotExist:
+            return False
+        else:
+            return True if '6_to_8_weeks' in [i.short_name for i in
+                                              infant_hiv_testing.test_visit.all()] else \
+                False
+
+    def hiv_test_9_months_required(self, visit=None, **kwargs):
+        try:
+            infant_hiv_testing = self.infant_hiv_test_model_cls.objects.get(
+                child_visit=visit)
+        except self.infant_hiv_test_model_cls.DoesNotExist:
+            return False
+        else:
+            return True if '9_months' in [i.short_name for i in
+                                          infant_hiv_testing.test_visit.all()] else False
