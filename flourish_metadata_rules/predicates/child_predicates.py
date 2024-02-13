@@ -729,3 +729,21 @@ class ChildPredicates(PredicateCollection):
 
         return not self.previous_model(visit=visit, model=infant_arv_proph_model) or \
             visit.visit_code in ['2001', '2003']
+
+    def func_child_tb_referral_required(self, visit=None, **kwargs):
+        """Returns true if child TB referral crf is required
+        """
+        child_tb_screening_model_cls = django_apps.get_model(
+            f'{self.app_label}.childtbscreening')
+        latest_obj = child_tb_screening_model_cls.objects.filter(
+            child_visit__subject_identifier=visit.subject_identifier
+        ).order_by('-report_datetime').first()
+        if latest_obj:
+            return (
+                    latest_obj.cough_duration == '≥ 2 weeks' or
+                    latest_obj.fever == YES or
+                    latest_obj.sweats == YES or
+                    latest_obj.weight_loss == YES
+
+            )
+        return False
