@@ -1,6 +1,7 @@
 from dateutil.relativedelta import MO, TU, WE, TH, FR, SA, SU
 from django.apps import AppConfig as DjangoAppConfig
 from django.conf import settings
+from edc_data_manager.apps import AppConfig as BaseEdcDataManagerAppConfig
 from edc_facility.apps import AppConfig as BaseEdcFacilityAppConfig
 
 
