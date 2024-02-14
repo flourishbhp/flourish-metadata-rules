@@ -11,7 +11,7 @@ pc = CaregiverPredicates()
 @register()
 class TbScreeningRules(CrfRuleGroup):
     tb_referral = CrfRule(
-        predicate=P('household_diagnosed_with_tb', 'eq', NO),
+        predicate=pc.func_caregiver_tb_referral_required,
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.tbreferralcaregiver', ])

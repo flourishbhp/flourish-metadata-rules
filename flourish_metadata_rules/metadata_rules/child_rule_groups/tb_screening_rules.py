@@ -1,17 +1,16 @@
-from edc_constants.constants import NO
 from edc_metadata import NOT_REQUIRED, REQUIRED
-from edc_metadata_rules import CrfRule, CrfRuleGroup, P, register
+from edc_metadata_rules import CrfRule, CrfRuleGroup, register
 
-from flourish_metadata_rules.predicates import CaregiverPredicates
+from flourish_metadata_rules.predicates import ChildPredicates
 
 app_label = 'flourish_child'
-pc = CaregiverPredicates()
+pc = ChildPredicates()
 
 
 @register()
 class TbScreeningRules(CrfRuleGroup):
     tb_referral = CrfRule(
-        predicate=P('household_diagnosed_with_tb', 'eq', NO),
+        predicate=pc.func_child_tb_referral_required,
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.childtbreferral', ])
