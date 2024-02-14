@@ -4,7 +4,7 @@ from dateutil.relativedelta import relativedelta
 from django.apps import apps as django_apps
 from django.db.models import Q
 from edc_base.utils import age, get_utcnow
-from edc_constants.constants import FEMALE, IND, NO, PENDING, POS, YES, OTHER
+from edc_constants.constants import FEMALE, IND, NO, OTHER, PENDING, POS, YES
 from edc_metadata_rules import PredicateCollection
 from edc_reference.models import Reference
 
@@ -712,8 +712,8 @@ class ChildPredicates(PredicateCollection):
         except self.infant_hiv_test_model_cls.DoesNotExist:
             return False
         else:
-            return True if 'birth' in [i.short_name for i in
-                                       infant_hiv_testing.test_visit.all()] else False
+            return 'birth' in [i.short_name for i in
+                               infant_hiv_testing.test_visit.all()]
 
     def hiv_test_other_required(self, visit=None, **kwargs):
         try:
@@ -722,8 +722,8 @@ class ChildPredicates(PredicateCollection):
         except self.infant_hiv_test_model_cls.DoesNotExist:
             return False
         else:
-            return True if OTHER in [i.short_name for i in
-                                     infant_hiv_testing.test_visit.all()] else False
+            return OTHER in [i.short_name for i in
+                             infant_hiv_testing.test_visit.all()]
 
     def hiv_test_18_months_required(self, visit=None, **kwargs):
         try:
@@ -732,8 +732,8 @@ class ChildPredicates(PredicateCollection):
         except self.infant_hiv_test_model_cls.DoesNotExist:
             return False
         else:
-            return True if '18_months' in [i.short_name for i in
-                                           infant_hiv_testing.test_visit.all()] else False
+            return '18_months' in [i.short_name for i in
+                                   infant_hiv_testing.test_visit.all()]
 
     def hiv_test_after_breastfeeding_required(self, visit=None, **kwargs):
         try:
@@ -742,10 +742,8 @@ class ChildPredicates(PredicateCollection):
         except self.infant_hiv_test_model_cls.DoesNotExist:
             return False
         else:
-            return True if 'after_breastfeeding' in [i.short_name for i in
-                                                     infant_hiv_testing.test_visit.all(
-
-                                                     )] else False
+            return 'after_breastfeeding' in [i.short_name for i in
+                                             infant_hiv_testing.test_visit.all()]
 
     def hiv_test_6_to_8_weeks_required(self, visit=None, **kwargs):
         try:
@@ -754,9 +752,8 @@ class ChildPredicates(PredicateCollection):
         except self.infant_hiv_test_model_cls.DoesNotExist:
             return False
         else:
-            return True if '6_to_8_weeks' in [i.short_name for i in
-                                              infant_hiv_testing.test_visit.all()] else \
-                False
+            return '6_to_8_weeks' in [i.short_name for i in
+                                      infant_hiv_testing.test_visit.all()]
 
     def hiv_test_9_months_required(self, visit=None, **kwargs):
         try:
@@ -765,5 +762,5 @@ class ChildPredicates(PredicateCollection):
         except self.infant_hiv_test_model_cls.DoesNotExist:
             return False
         else:
-            return True if '9_months' in [i.short_name for i in
-                                          infant_hiv_testing.test_visit.all()] else False
+            return '9_months' in [i.short_name for i in
+                                  infant_hiv_testing.test_visit.all()]
