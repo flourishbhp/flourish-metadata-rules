@@ -715,52 +715,27 @@ class ChildPredicates(PredicateCollection):
             return 'birth' in [i.short_name for i in
                                infant_hiv_testing.test_visit.all()]
 
-    def hiv_test_other_required(self, visit=None, **kwargs):
+    def hiv_test_required(self, child_age, visit):
         try:
             infant_hiv_testing = self.infant_hiv_test_model_cls.objects.get(
                 child_visit=visit)
         except self.infant_hiv_test_model_cls.DoesNotExist:
             return False
         else:
-            return OTHER in [i.short_name for i in
-                             infant_hiv_testing.test_visit.all()]
+            return child_age in [i.short_name for i in
+                                 infant_hiv_testing.test_visit.all()]
+
+    def hiv_test_other_required(self, visit=None, **kwargs):
+        return self.hiv_test_required(OTHER, visit)
 
     def hiv_test_18_months_required(self, visit=None, **kwargs):
-        try:
-            infant_hiv_testing = self.infant_hiv_test_model_cls.objects.get(
-                child_visit=visit)
-        except self.infant_hiv_test_model_cls.DoesNotExist:
-            return False
-        else:
-            return '18_months' in [i.short_name for i in
-                                   infant_hiv_testing.test_visit.all()]
+        return self.hiv_test_required('18_months', visit)
 
     def hiv_test_after_breastfeeding_required(self, visit=None, **kwargs):
-        try:
-            infant_hiv_testing = self.infant_hiv_test_model_cls.objects.get(
-                child_visit=visit)
-        except self.infant_hiv_test_model_cls.DoesNotExist:
-            return False
-        else:
-            return 'after_breastfeeding' in [i.short_name for i in
-                                             infant_hiv_testing.test_visit.all()]
+        return self.hiv_test_required('after_breastfeeding', visit)
 
     def hiv_test_6_to_8_weeks_required(self, visit=None, **kwargs):
-        try:
-            infant_hiv_testing = self.infant_hiv_test_model_cls.objects.get(
-                child_visit=visit)
-        except self.infant_hiv_test_model_cls.DoesNotExist:
-            return False
-        else:
-            return '6_to_8_weeks' in [i.short_name for i in
-                                      infant_hiv_testing.test_visit.all()]
+        return self.hiv_test_required('6_to_8_weeks', visit)
 
     def hiv_test_9_months_required(self, visit=None, **kwargs):
-        try:
-            infant_hiv_testing = self.infant_hiv_test_model_cls.objects.get(
-                child_visit=visit)
-        except self.infant_hiv_test_model_cls.DoesNotExist:
-            return False
-        else:
-            return '9_months' in [i.short_name for i in
-                                  infant_hiv_testing.test_visit.all()]
+        return self.hiv_test_required('9_months', visit)
