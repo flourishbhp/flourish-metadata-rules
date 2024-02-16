@@ -134,9 +134,7 @@ class ChildPredicates(PredicateCollection):
         consent_objs = caregiver_child_consent_cls.objects.filter(
             subject_identifier=visit.subject_identifier, ).exclude(
             Q(version='1') | Q(version='2'))
-
-        visit_codes = ['2000D', '2002S']
-        return visit.visit_code in visit_codes and visit.visit_code_sequence == 0 and \
+        return visit.visit_code == '2000D' and visit.visit_code_sequence == 0 and \
             consent_objs.exists()
 
     def get_child_age(self, visit=None, **kwargs):
@@ -645,6 +643,9 @@ class ChildPredicates(PredicateCollection):
         else:
             return child_age in [i.short_name for i in
                                  infant_hiv_testing.test_visit.all()]
+
+    def hiv_test_birth_required(self, visit=None, **kwargs):
+        return self.hiv_test_required('birth', visit)
 
     def hiv_test_other_required(self, visit=None, **kwargs):
         return self.hiv_test_required(OTHER, visit)
