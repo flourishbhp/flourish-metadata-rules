@@ -705,16 +705,6 @@ class ChildPredicates(PredicateCollection):
         return any([getattr(latest_obj, field, None) == PENDING
                     for field in tests]) if latest_obj else True
 
-    def hiv_test_birth_required(self, visit=None, **kwargs):
-        try:
-            infant_hiv_testing = self.infant_hiv_test_model_cls.objects.get(
-                child_visit=visit)
-        except self.infant_hiv_test_model_cls.DoesNotExist:
-            return False
-        else:
-            return 'birth' in [i.short_name for i in
-                               infant_hiv_testing.test_visit.all()]
-
     def hiv_test_required(self, child_age, visit):
         try:
             infant_hiv_testing = self.infant_hiv_test_model_cls.objects.get(
@@ -724,6 +714,9 @@ class ChildPredicates(PredicateCollection):
         else:
             return child_age in [i.short_name for i in
                                  infant_hiv_testing.test_visit.all()]
+
+    def hiv_test_birth_required(self, visit=None, **kwargs):
+        return self.hiv_test_required('birth', visit)
 
     def hiv_test_other_required(self, visit=None, **kwargs):
         return self.hiv_test_required(OTHER, visit)
