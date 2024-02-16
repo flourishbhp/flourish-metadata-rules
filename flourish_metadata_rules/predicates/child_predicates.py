@@ -387,86 +387,6 @@ class ChildPredicates(PredicateCollection):
             report_datetime__lt=visit.report_datetime).order_by(
             '-report_datetime').first()
 
-    def func_3_months_old(self, visit=None, **kwargs):
-        """
-        Returns True if the participant is 3 months old
-        """
-        child_age = self.get_child_age(visit=visit)
-        if 6 > child_age.months >= 3 and child_age.years == 0:
-            model = f'{self.app_label}.infantdevscreening3months'
-            return False if self.previous_model(visit=visit,
-                                                model=model) else True
-
-    def func_6_months_old(self, visit=None, **kwargs):
-        """
-        Returns True if the participant is 6 months old
-        """
-        child_age = self.get_child_age(visit=visit)
-        if child_age.years == 0 and 9 > child_age.months >= 6:
-            model = f'{self.app_label}.infantdevscreening6months'
-            return False if self.previous_model(visit=visit,
-                                                model=model) else True
-
-    def func_9_months_old(self, visit=None, **kwargs):
-        """
-        Returns True if the participant is 9 months old
-        """
-        child_age = self.get_child_age(visit=visit)
-        if child_age.years == 0 and 12 > child_age.months >= 9:
-            model = f'{self.app_label}.infantdevscreening9months'
-            return False if self.previous_model(visit=visit,
-                                                model=model) else True
-
-    def func_12_months_old(self, visit=None, **kwargs):
-        """
-        Returns True if the participant is 12 months old
-        """
-        child_age = self.get_child_age(visit=visit)
-        if child_age.years == 1 and child_age.months < 6:
-            model = f'{self.app_label}.infantdevscreening12months'
-            return False if self.previous_model(visit=visit,
-                                                model=model) else True
-
-    def func_18_months_old(self, visit=None, **kwargs):
-        """
-        Returns True if the participant is 18 months old
-        """
-        child_age = self.get_child_age(visit=visit)
-        if child_age.years == 1 and child_age.months >= 6:
-            model = f'{self.app_label}.infantdevscreening18months'
-            return False if self.previous_model(visit=visit,
-                                                model=model) else True
-
-    def func_36_months_old(self, visit=None, **kwargs):
-        """
-        Returns True if the participant is 36 months old
-        """
-        child_age = self.get_child_age(visit=visit)
-        if child_age.years == 3:
-            model = f'{self.app_label}.infantdevscreening36months'
-            return False if self.previous_model(visit=visit,
-                                                model=model) else True
-
-    def func_60_months_old(self, visit=None, **kwargs):
-        """
-        Returns True if the participant is 5 years old
-        """
-        child_age = self.get_child_age(visit=visit)
-        if child_age.years == 5:
-            model = f'{self.app_label}.infantdevscreening60months'
-            return False if self.previous_model(visit=visit,
-                                                model=model) else True
-
-    def func_72_months_old(self, visit=None, **kwargs):
-        """
-        Returns True if the participant is 6 years old
-        """
-        child_age = self.get_child_age(visit=visit)
-        if child_age.years == 6:
-            model = f'{self.app_label}.infantdevscreening72months'
-            return False if self.previous_model(visit=visit,
-                                                model=model) else True
-
     def func_forth_eighth_quarter(self, visit=None, **kwargs):
         """
         Returns true if the visit is the 4th annual quarterly call
@@ -739,3 +659,38 @@ class ChildPredicates(PredicateCollection):
 
     def hiv_test_9_months_required(self, visit=None, **kwargs):
         return self.hiv_test_required('9_months', visit)
+
+    def func_child_tb_referral_outcome(self, visit=None, **kwargs):
+        """Returns true if caregiver TB referral outcome crf is required
+        """
+        prev_child_tb_referral_objs = Reference.objects.filter(
+            model=f'{self.app_label}.childtbreferral',
+            report_datetime__lt=visit.report_datetime,
+            identifier=visit.subject_identifier, )
+        prev_child_tb_referral_outcome_objs = Reference.objects.filter(
+            model=f'{self.app_label}.childtbreferraloutcome',
+            report_datetime__lt=visit.report_datetime,
+            identifier=visit.subject_identifier, )
+
+        if prev_child_tb_referral_objs.exists():
+            return prev_child_tb_referral_objs.count() > \
+                prev_child_tb_referral_outcome_objs.count()
+        return False
+
+    def func_child_tb_referral_required(self, visit=None, **kwargs):
+        """Returns true if child TB referral crf is required
+        """
+        child_tb_screening_model_cls = django_apps.get_model(
+            f'{self.app_label}.childtbscreening')
+        latest_obj = child_tb_screening_model_cls.objects.filter(
+            child_visit__subject_identifier=visit.subject_identifier
+        ).order_by('-report_datetime').first()
+        if latest_obj:
+            return (
+                    latest_obj.cough_duration == '≥ 2 weeks' or
+                    latest_obj.fever == YES or
+                    latest_obj.sweats == YES or
+                    latest_obj.weight_loss == YES
+
+            )
+        return False
