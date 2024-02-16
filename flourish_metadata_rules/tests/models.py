@@ -135,3 +135,39 @@ class RelationshipFatherInvolvement(BaseUuidModel):
     subject_identifier = models.CharField(max_length=25)
 
     partner_present = models.CharField(max_length=3)
+
+
+class ChildTBReferral(BaseUuidModel):
+    child_visit = models.ForeignKey(ChildVisit,
+                                    on_delete=PROTECT)
+
+
+class ChildTBScreen(BaseUuidModel):
+    child_visit = models.ForeignKey(ChildVisit,
+                                    on_delete=PROTECT)
+
+
+class ChildTBReferralOutcome(BaseUuidModel):
+    child_visit = models.ForeignKey(ChildVisit,
+                                    on_delete=PROTECT)
+
+
+class CaregiverTBScreening(BaseUuidModel):
+    maternal_visit = models.ForeignKey(MaternalVisit,
+                                       on_delete=PROTECT)
+
+    subject_identifier = models.CharField(max_length=25)
+
+    chest_xray_results = models.CharField(max_length=30)
+
+    report_datetime = models.DateTimeField()
+
+
+class TBReferralCaregiver(BaseUuidModel):
+    maternal_visit = models.ForeignKey(MaternalVisit,
+                                       on_delete=PROTECT)
+
+
+class CaregiverTBReferralOutcome(BaseUuidModel):
+    maternal_visit = models.ForeignKey(MaternalVisit,
+                                       on_delete=PROTECT)
