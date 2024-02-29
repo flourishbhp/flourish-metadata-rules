@@ -133,7 +133,9 @@ class ChildPredicates(PredicateCollection):
         consent_objs = caregiver_child_consent_cls.objects.filter(
             subject_identifier=visit.subject_identifier, ).exclude(
             Q(version='1') | Q(version='2'))
-        return visit.visit_code == '2000D' and visit.visit_code_sequence == 0 and \
+
+        visit_codes = ['2000D', '2002S']
+        return visit.visit_code in visit_codes and visit.visit_code_sequence == 0 and \
             consent_objs.exists()
 
     def get_child_age(self, visit=None, **kwargs):
@@ -494,8 +496,9 @@ class ChildPredicates(PredicateCollection):
         """
         Returns True if visit is 2000D
         """
+        visit_codes = ['2000D', '2002S']
 
-        return visit.visit_code == '2000D' and visit.visit_code_sequence == 0
+        return visit.visit_code in visit_codes and visit.visit_code_sequence == 0
 
     def func_cough_and_fever(self, visit, **kwargs):
 
@@ -611,7 +614,7 @@ class ChildPredicates(PredicateCollection):
             hiv_test_6wks_post_wean = self.infant_hiv_test_model_cls.objects.filter(
                 child_visit__subject_identifier=child_subject_identifier,
                 received_date__gte=infant_feeding_crf.dt_weaned +
-                timedelta(weeks=6)
+                                   timedelta(weeks=6)
             ).exists()
 
         child_age = self.get_child_age(visit=visit)
@@ -622,7 +625,8 @@ class ChildPredicates(PredicateCollection):
             visit=visit).hiv_status
         if (hiv_status == POS and self.func_consent_study_pregnant(visit=visit)):
             if (self.newly_enrolled(visit=visit)
-                    and visit.visit_code in ['2001', '2003', '3000', '3000A', '3000B', '3000C']):
+                    and visit.visit_code in ['2001', '2003', '3000', '3000A', '3000B',
+                                             '3000C']):
                 return True
 
             if visit.visit_code == '2002':
@@ -632,7 +636,7 @@ class ChildPredicates(PredicateCollection):
                 infant_feeding_crf, 'continuing_to_bf', None)
 
             return continuing_to_bf == YES or (continuing_to_bf == NO and not
-                                               hiv_test_6wks_post_wean)
+            hiv_test_6wks_post_wean)
 
         return False
 
