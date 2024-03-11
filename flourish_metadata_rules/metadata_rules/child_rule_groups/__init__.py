@@ -3,7 +3,6 @@ from .child_gad_anxiety_referral_rules import ChildGAD7ReferralRuleGroup
 from .child_gad_anxiety_screening_rules import ChildGAD7AnxietyScreeningRuleGroup
 from .child_phq_depression_referral_rules import ChildPHQ9ReferralRuleGroup
 from .child_phq_depression_screening_rules import ChildPHQ9DeprScreeningRuleGroup
-from .child_tb_referral_rules import ChildTBReferralRuleGroup
 from .child_visit_rules import ChildVisitRuleGroup
 from .infant_hiv_test_rules import InfantHIVTestRuleGroup
 from .requisition_rules import ChildVisitReqRuleGroup

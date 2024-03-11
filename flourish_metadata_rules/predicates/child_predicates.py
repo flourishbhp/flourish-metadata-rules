@@ -4,7 +4,7 @@ from dateutil.relativedelta import relativedelta
 from django.apps import apps as django_apps
 from django.db.models import Q
 from edc_base.utils import age, get_utcnow
-from edc_constants.constants import FEMALE, IND, NO, POS, YES
+from edc_constants.constants import FEMALE, IND, NO, PENDING, POS, YES
 from edc_metadata_rules import PredicateCollection
 from edc_reference.models import Reference
 
@@ -31,7 +31,8 @@ class ChildPredicates(PredicateCollection):
     infant_hiv_test_model = f'{app_label}.infanthivtesting'
     tb_hivtesting_model = f'{app_label}.hivtestingadol'
     infant_arv_proph_model = f'{app_label}.infantarvprophylaxis'
-    relationship_father_involvement_model = f'{maternal_app_label}.relationshipfatherinvolvement'
+    relationship_father_involvement_model = (
+        f'{maternal_app_label}.relationshipfatherinvolvement')
 
     @property
     def tb_presence_model_cls(self):
@@ -621,8 +622,8 @@ class ChildPredicates(PredicateCollection):
 
         child_age_in_months = (child_age.years * 12) + child_age.months
 
-        hiv_status = self.get_latest_maternal_hiv_status(
-            visit=visit).hiv_status
+        hiv_status = self.get_latest_maternal_hiv_status(visit=visit).hiv_status
+
         if (hiv_status == POS and self.func_consent_study_pregnant(visit=visit)):
             if (self.newly_enrolled(visit=visit)
                     and visit.visit_code in ['2001', '2003', '3000', '3000A', '3000B',
@@ -689,3 +690,20 @@ class ChildPredicates(PredicateCollection):
             visit_code_sequence=0).order_by('timepoint').last()
 
         return previous_appt or appointment.previous_by_timepoint
+
+    def func_child_tb_screening_required(self, visit=None, **kwargs):
+        """Returns true if child tb screening is required
+        """
+        child_tb_scrining_model = f'{self.app_label}.childtbscreening'
+        child_tb_scrining_model_cls = django_apps.get_model(
+            child_tb_scrining_model)
+        latest_obj = child_tb_scrining_model_cls.objects.filter(
+            child_visit__subject_identifier=visit.subject_identifier
+        ).order_by('-report_datetime').first()
+        tests = ['chest_xray_results',
+                 'sputum_sample_results',
+                 'blood_test_results',
+                 'urine_test_results',
+                 'skin_test_results']
+        return any([getattr(latest_obj, field, None) == PENDING
+                    for field in tests]) if latest_obj else True
