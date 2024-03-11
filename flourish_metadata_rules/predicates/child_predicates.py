@@ -707,3 +707,16 @@ class ChildPredicates(PredicateCollection):
                  'skin_test_results']
         return any([getattr(latest_obj, field, None) == PENDING
                     for field in tests]) if latest_obj else True
+
+    def func_heu_status_disclosed(self, visit, **kwargs):
+        disclosure_crfs = ['flourish_caregiver.hivdisclosurestatusa',
+                           'flourish_caregiver.hivdisclosurestatusb',
+                           'flourish_caregiver.hivdisclosurestatusc']
+    
+        for crf in disclosure_crfs:
+            model_cls = django_apps.get_model(crf)
+            disclosed_status = model_cls.objects.filter(
+                associated_child_identifier=visit.subject_identifier,
+                disclosed_status=YES).exists()
+            if disclosed_status:
+                return self.func_hiv_exposed(visit)
