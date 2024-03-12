@@ -134,7 +134,9 @@ class ChildPredicates(PredicateCollection):
         consent_objs = caregiver_child_consent_cls.objects.filter(
             subject_identifier=visit.subject_identifier, ).exclude(
             Q(version='1') | Q(version='2'))
-        return visit.visit_code == '2000D' and visit.visit_code_sequence == 0 and \
+
+        visit_codes = ['2000D', '2002S']
+        return visit.visit_code in visit_codes and visit.visit_code_sequence == 0 and \
             consent_objs.exists()
 
     def get_child_age(self, visit=None, **kwargs):
@@ -397,8 +399,9 @@ class ChildPredicates(PredicateCollection):
         """
         Returns True if visit is 2000D
         """
+        visit_codes = ['2000D', '2002S']
 
-        return visit.visit_code == '2000D' and visit.visit_code_sequence == 0
+        return visit.visit_code in visit_codes and visit.visit_code_sequence == 0
 
     def func_cough_and_fever(self, visit, **kwargs):
 
@@ -669,3 +672,16 @@ class ChildPredicates(PredicateCollection):
 
             )
         return False
+
+    def func_heu_status_disclosed(self, visit, **kwargs):
+        disclosure_crfs = ['flourish_caregiver.hivdisclosurestatusa',
+                           'flourish_caregiver.hivdisclosurestatusb',
+                           'flourish_caregiver.hivdisclosurestatusc']
+    
+        for crf in disclosure_crfs:
+            model_cls = django_apps.get_model(crf)
+            disclosed_status = model_cls.objects.filter(
+                associated_child_identifier=visit.subject_identifier,
+                disclosed_status=YES).exists()
+            if disclosed_status:
+                return self.func_hiv_exposed(visit)
