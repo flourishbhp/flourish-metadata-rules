@@ -1,1 +1,2 @@
+from .breast_milk_collection_rules import BreastMilk6MonthsReqRuleGroup
 from .maternal_visit_req_rules import MaternalVisitReqRuleGroup
