@@ -1,4 +1,4 @@
-from edc_constants.constants import YES
+from edc_constants.constants import YES, PARTICIPANT
 from edc_metadata import NOT_REQUIRED, REQUIRED
 from edc_metadata_rules import CrfRule, CrfRuleGroup, register, P
 
@@ -10,7 +10,7 @@ pc = ChildPredicates()
 
 @register()
 class ChildVisitRuleGroup(CrfRuleGroup):
-
+    
     birth_exam = CrfRule(
         predicate=P('is_present', 'eq', YES),
         consequence=REQUIRED,
