@@ -10,13 +10,13 @@ pc = ChildPredicates()
 
 @register()
 class ChildVisitRuleGroup(CrfRuleGroup):
-    
+
     child_clinician_notes = CrfRule(
         predicate=P('info_source', 'eq', PARTICIPANT),
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.childcliniciannotes'])
-    
+
     birth_exam = CrfRule(
         predicate=P('is_present', 'eq', YES),
         consequence=REQUIRED,
