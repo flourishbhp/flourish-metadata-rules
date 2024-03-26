@@ -4,7 +4,7 @@ from dateutil.relativedelta import relativedelta
 from django.apps import apps as django_apps
 from django.db.models import Q
 from edc_base.utils import age, get_utcnow
-from edc_constants.constants import FEMALE, IND, NO, PENDING, POS, YES
+from edc_constants.constants import FEMALE, IND, NO, OTHER, PENDING, POS, YES
 from edc_metadata_rules import PredicateCollection
 from edc_reference.models import Reference
 
@@ -393,25 +393,7 @@ class ChildPredicates(PredicateCollection):
         """
         Returns true if the visit is the 4th annual quarterly call
         """
-        child_age = self.get_child_age(visit=visit)
-
-        caregiver_child_consent_cls = django_apps.get_model(
-            f'{self.maternal_app_label}.caregiverchildconsent')
-
-        consents = caregiver_child_consent_cls.objects.filter(
-            subject_identifier=visit.subject_identifier)
-
-        if child_age.years >= 3 and consents:
-
-            caregiver_child_consent = consents.latest('consent_datetime')
-
-            child_is_three_at_date = caregiver_child_consent.child_dob + relativedelta(
-                years=3, months=0)
-
-            if visit.report_datetime.date() >= child_is_three_at_date:
-                return int(visit.visit_code[:4]) % 4 == 0
-
-        return False
+        return int(visit.visit_code[:4]) % 4 == 0
 
     def func_2000D(self, visit, **kwargs):
         """
@@ -628,6 +610,69 @@ class ChildPredicates(PredicateCollection):
         return any([getattr(latest_obj, field, None) == PENDING
                     for field in tests]) if latest_obj else True
 
+    def hiv_test_required(self, child_age, visit):
+        try:
+            infant_hiv_testing = self.infant_hiv_test_model_cls.objects.get(
+                child_visit=visit)
+        except self.infant_hiv_test_model_cls.DoesNotExist:
+            return False
+        else:
+            return child_age in [i.short_name for i in
+                                 infant_hiv_testing.test_visit.all()]
+
+    def hiv_test_birth_required(self, visit=None, **kwargs):
+        return self.hiv_test_required('birth', visit)
+
+    def hiv_test_other_required(self, visit=None, **kwargs):
+        return self.hiv_test_required(OTHER, visit)
+
+    def hiv_test_18_months_required(self, visit=None, **kwargs):
+        return self.hiv_test_required('18_months', visit)
+
+    def hiv_test_after_breastfeeding_required(self, visit=None, **kwargs):
+        return self.hiv_test_required('after_breastfeeding', visit)
+
+    def hiv_test_6_to_8_weeks_required(self, visit=None, **kwargs):
+        return self.hiv_test_required('6_to_8_weeks', visit)
+
+    def hiv_test_9_months_required(self, visit=None, **kwargs):
+        return self.hiv_test_required('9_months', visit)
+
+    def func_child_tb_referral_outcome(self, visit=None, **kwargs):
+        """Returns true if caregiver TB referral outcome crf is required
+        """
+        prev_child_tb_referral_objs = Reference.objects.filter(
+            model=f'{self.app_label}.childtbreferral',
+            report_datetime__lt=visit.report_datetime,
+            identifier=visit.subject_identifier, )
+        prev_child_tb_referral_outcome_objs = Reference.objects.filter(
+            model=f'{self.app_label}.childtbreferraloutcome',
+            report_datetime__lt=visit.report_datetime,
+            identifier=visit.subject_identifier, )
+
+        if prev_child_tb_referral_objs.exists():
+            return prev_child_tb_referral_objs.count() > \
+                prev_child_tb_referral_outcome_objs.count()
+        return False
+
+    def func_child_tb_referral_required(self, visit=None, **kwargs):
+        """Returns true if child TB referral crf is required
+        """
+        child_tb_screening_model_cls = django_apps.get_model(
+            f'{self.app_label}.childtbscreening')
+        latest_obj = child_tb_screening_model_cls.objects.filter(
+            child_visit__subject_identifier=visit.subject_identifier
+        ).order_by('-report_datetime').first()
+        if latest_obj:
+            return (
+                    latest_obj.cough_duration == '≥ 2 weeks' or
+                    latest_obj.fever == YES or
+                    latest_obj.sweats == YES or
+                    latest_obj.weight_loss == YES
+
+            )
+        return False
+
     def func_heu_status_disclosed(self, visit, **kwargs):
         child_subject_identifier = visit.subject_identifier
         caregiver_subject_identifier = child_utils.caregiver_subject_identifier(
@@ -636,7 +681,7 @@ class ChildPredicates(PredicateCollection):
         disclosure_crfs = ['flourish_caregiver.hivdisclosurestatusa',
                            'flourish_caregiver.hivdisclosurestatusb',
                            'flourish_caregiver.hivdisclosurestatusc']
-    
+
         for crf in disclosure_crfs:
             model_cls = django_apps.get_model(crf)
             disclosed_status = model_cls.objects.filter(
@@ -644,3 +689,4 @@ class ChildPredicates(PredicateCollection):
                 disclosed_status=YES).exists()
             if disclosed_status:
                 return is_biological and self.func_hiv_exposed(visit)
+
