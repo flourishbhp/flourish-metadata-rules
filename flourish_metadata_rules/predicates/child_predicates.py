@@ -674,6 +674,10 @@ class ChildPredicates(PredicateCollection):
         return False
 
     def func_heu_status_disclosed(self, visit, **kwargs):
+        child_subject_identifier = visit.subject_identifier
+        caregiver_subject_identifier = child_utils.caregiver_subject_identifier(
+            subject_identifier=child_subject_identifier)
+        is_biological = caregiver_subject_identifier.startswith('B')
         disclosure_crfs = ['flourish_caregiver.hivdisclosurestatusa',
                            'flourish_caregiver.hivdisclosurestatusb',
                            'flourish_caregiver.hivdisclosurestatusc']
@@ -684,5 +688,5 @@ class ChildPredicates(PredicateCollection):
                 associated_child_identifier=visit.subject_identifier,
                 disclosed_status=YES).exists()
             if disclosed_status:
-                return self.func_hiv_exposed(visit)
+                return is_biological and self.func_hiv_exposed(visit)
 
