@@ -1,6 +1,5 @@
 from datetime import timedelta
 
-from dateutil.relativedelta import relativedelta
 from django.apps import apps as django_apps
 from django.db.models import Q
 from edc_base.utils import age, get_utcnow
