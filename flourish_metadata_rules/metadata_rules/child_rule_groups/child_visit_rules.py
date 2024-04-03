@@ -1,6 +1,6 @@
 from edc_constants.constants import YES, PARTICIPANT
 from edc_metadata import NOT_REQUIRED, REQUIRED
-from edc_metadata_rules import CrfRule, CrfRuleGroup, register, P
+from edc_metadata_rules import CrfRule, CrfRuleGroup, P, register
 
 from ...predicates import ChildPredicates
 
@@ -10,7 +10,13 @@ pc = ChildPredicates()
 
 @register()
 class ChildVisitRuleGroup(CrfRuleGroup):
-    
+
+    child_clinician_notes = CrfRule(
+        predicate=P('info_source', 'eq', PARTICIPANT),
+        consequence=REQUIRED,
+        alternative=NOT_REQUIRED,
+        target_models=[f'{app_label}.childcliniciannotes'])
+
     birth_exam = CrfRule(
         predicate=P('is_present', 'eq', YES),
         consequence=REQUIRED,
@@ -93,6 +99,12 @@ class ChildVisitRuleGroup(CrfRuleGroup):
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.childworkingstatus', ])
 
+    forth_eighth_quarter = CrfRule(
+        predicate=pc.func_forth_eighth_quarter,
+        consequence=REQUIRED,
+        alternative=NOT_REQUIRED,
+        target_models=[f'{app_label}.childfoodsecurityquestionnaire', ])
+
     child_gad_anxiety_post_referral = CrfRule(
         predicate=pc.func_gad_post_referral_required,
         consequence=REQUIRED,
@@ -109,14 +121,14 @@ class ChildVisitRuleGroup(CrfRuleGroup):
         predicate=pc.func_tb_lab_results_exist,
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
-        target_models=[f'{app_label}.tblabresultsadol',]
+        target_models=[f'{app_label}.tblabresultsadol', ]
     )
 
     child_tb_screening = CrfRule(
         predicate=pc.func_child_tb_screening_required,
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
-        target_models=[f'{app_label}.childtbscreening',]
+        target_models=[f'{app_label}.childtbscreening', ]
     )
 
     infant_hiv_testing = CrfRule(

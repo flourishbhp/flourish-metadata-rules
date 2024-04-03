@@ -393,25 +393,7 @@ class ChildPredicates(PredicateCollection):
         """
         Returns true if the visit is the 4th annual quarterly call
         """
-        child_age = self.get_child_age(visit=visit)
-
-        caregiver_child_consent_cls = django_apps.get_model(
-            f'{self.maternal_app_label}.caregiverchildconsent')
-
-        consents = caregiver_child_consent_cls.objects.filter(
-            subject_identifier=visit.subject_identifier)
-
-        if child_age.years >= 3 and consents:
-
-            caregiver_child_consent = consents.latest('consent_datetime')
-
-            child_is_three_at_date = caregiver_child_consent.child_dob + relativedelta(
-                years=3, months=0)
-
-            if visit.report_datetime.date() >= child_is_three_at_date:
-                return int(visit.visit_code[:4]) % 4 == 0
-
-        return False
+        return int(visit.visit_code[:4]) % 4 == 0
 
     def func_2000D(self, visit, **kwargs):
         """
@@ -636,7 +618,7 @@ class ChildPredicates(PredicateCollection):
         disclosure_crfs = ['flourish_caregiver.hivdisclosurestatusa',
                            'flourish_caregiver.hivdisclosurestatusb',
                            'flourish_caregiver.hivdisclosurestatusc']
-    
+
         for crf in disclosure_crfs:
             model_cls = django_apps.get_model(crf)
             disclosed_status = model_cls.objects.filter(
