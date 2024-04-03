@@ -680,7 +680,7 @@ class ChildPredicates(PredicateCollection):
         disclosure_crfs = ['flourish_caregiver.hivdisclosurestatusa',
                            'flourish_caregiver.hivdisclosurestatusb',
                            'flourish_caregiver.hivdisclosurestatusc']
-    
+
         for crf in disclosure_crfs:
             model_cls = django_apps.get_model(crf)
             disclosed_status = model_cls.objects.filter(
