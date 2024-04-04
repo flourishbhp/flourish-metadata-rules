@@ -1,6 +1,8 @@
 from edc_metadata import NOT_REQUIRED, REQUIRED
-from edc_metadata_rules import CrfRule, CrfRuleGroup, register, P
+from edc_metadata_rules import CrfRule, CrfRuleGroup, register
 from edc_constants.constants import PARTICIPANT
+from edc_metadata_rules import P
+
 from ...predicates import CaregiverPredicates
 
 app_label = 'flourish_caregiver'
@@ -139,12 +141,6 @@ class MaternalVisitRuleGroup(CrfRuleGroup):
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.caregivertbscreening', ])
-
-    caregiver_tb_referral_outcome = CrfRule(
-        predicate=pc.func_caregiver_tb_referral_outcome,
-        consequence=REQUIRED,
-        alternative=NOT_REQUIRED,
-        target_models=[f'{app_label}.caregivertbreferraloutcome', ])
 
     class Meta:
         app_label = app_label
