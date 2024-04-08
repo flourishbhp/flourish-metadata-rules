@@ -1,8 +1,6 @@
 from edc_metadata import NOT_REQUIRED, REQUIRED
-from edc_metadata_rules import CrfRule, CrfRuleGroup, register
+from edc_metadata_rules import CrfRule, CrfRuleGroup, register, P
 from edc_constants.constants import PARTICIPANT
-from edc_metadata_rules import P
-
 from ...predicates import CaregiverPredicates
 
 app_label = 'flourish_caregiver'
