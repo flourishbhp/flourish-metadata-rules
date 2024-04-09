@@ -1,5 +1,4 @@
 from datetime import date
-
 from dateutil import relativedelta
 from django.apps import apps as django_apps
 from edc_base.utils import age, get_utcnow
@@ -78,7 +77,7 @@ class CaregiverPredicates(PredicateCollection):
             return False
         else:
             return True
-
+        
     def child_gt10(self, visit):
 
         onschedule_model = django_apps.get_model(
@@ -116,6 +115,43 @@ class CaregiverPredicates(PredicateCollection):
                     if (child_age <= 15.9 and child_age >= 10):
                         return [True, child_subject_identifier]
         return [False, child_subject_identifier]
+    
+    def func_child_age(self, visit=None, **kwargs):
+        onschedule_model = django_apps.get_model(
+            visit.appointment.schedule.onschedule_model)
+        child_subject_identifier = None
+
+        try:
+            onschedule_obj = onschedule_model.objects.get(
+                subject_identifier=visit.appointment.subject_identifier,
+                schedule_name=visit.appointment.schedule_name)
+        except onschedule_model.DoesNotExist:
+            pass
+        else:
+
+            if onschedule_obj.schedule_name:
+                child_subject_identifier = onschedule_obj.child_subject_identifier
+
+        if child_subject_identifier and not self.is_child_offstudy(
+                child_subject_identifier):
+            registered_model = django_apps.get_model(
+                f'edc_registration.registeredsubject')
+
+            try:
+                registered_child = registered_model.objects.get(
+                    subject_identifier=child_subject_identifier)
+            except registered_model.DoesNotExist:
+                raise
+            else:
+                child_dob = registered_child.dob
+                report_datetime = visit.report_datetime
+                if child_dob and child_dob < report_datetime.date():
+                    child_age = age(child_dob, report_datetime)
+                    return child_age
+                
+    def func_child_age_gte10(self, visit, **kwargs):
+        child_age =  self.func_child_age(visit=visit, **kwargs)
+        return child_age.years >= 10 if child_age else False
 
     def prior_participation(self, visit=None, **kwargs):
         maternal_dataset_model = django_apps.get_model(
