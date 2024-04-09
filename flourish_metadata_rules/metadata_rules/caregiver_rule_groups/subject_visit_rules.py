@@ -154,6 +154,12 @@ class MaternalVisitRuleGroup(CrfRuleGroup):
                        f'{app_label}.breastmilk6months'],
     )
 
+    parent_adol_crf = CrfRule(
+        predicate = pc.func_child_age_gte10,
+        consequence=REQUIRED,
+        alternative=NOT_REQUIRED,
+        target_models=[f'{app_label}.parentadolrelationshipscale',])
+
     class Meta:
         app_label = app_label
         source_model = f'{app_label}.maternalvisit'
