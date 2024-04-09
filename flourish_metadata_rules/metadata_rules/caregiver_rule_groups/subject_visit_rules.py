@@ -1,5 +1,7 @@
 from edc_metadata import NOT_REQUIRED, REQUIRED
 from edc_metadata_rules import CrfRule, CrfRuleGroup, register
+from edc_constants.constants import PARTICIPANT
+from edc_metadata_rules import P
 
 from ...predicates import CaregiverPredicates
 
@@ -9,6 +11,13 @@ pc = CaregiverPredicates()
 
 @register()
 class MaternalVisitRuleGroup(CrfRuleGroup):
+    
+    clinician_notes = CrfRule(
+        predicate=P('info_source', 'eq', PARTICIPANT),
+        consequence=REQUIRED,
+        alternative=NOT_REQUIRED,
+        target_models=[f'{app_label}.cliniciannotes'])
+    
     pregnant = CrfRule(
         predicate=pc.enrolled_pregnant,
         consequence=REQUIRED,
@@ -74,13 +83,13 @@ class MaternalVisitRuleGroup(CrfRuleGroup):
         predicate=pc.func_show_hiv_test_form,
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
-        target_models=[f'{app_label}.hivrapidtestcounseling',])
-    
+        target_models=[f'{app_label}.hivrapidtestcounseling', ])
+
     post_hiv_test = CrfRule(
         predicate=pc.func_post_hiv_rapid_test,
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
-        target_models=[f'{app_label}.posthivrapidtestandconseling',])
+        target_models=[f'{app_label}.posthivrapidtestandconseling', ])
 
     breast_feeding = CrfRule(
         predicate=pc.func_show_b_feeding_form,
@@ -132,6 +141,11 @@ class MaternalVisitRuleGroup(CrfRuleGroup):
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.parentadolrelationshipscale',])
+    caregiver_tb_screening = CrfRule(
+        predicate=pc.func_caregiver_tb_screening,
+        consequence=REQUIRED,
+        alternative=NOT_REQUIRED,
+        target_models=[f'{app_label}.caregivertbscreening', ])
 
     class Meta:
         app_label = app_label

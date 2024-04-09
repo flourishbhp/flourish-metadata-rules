@@ -4,7 +4,7 @@ from dateutil.relativedelta import relativedelta
 from django.apps import apps as django_apps
 from django.db.models import Q
 from edc_base.utils import age, get_utcnow
-from edc_constants.constants import FEMALE, IND, NO, POS, YES
+from edc_constants.constants import FEMALE, IND, NO, PENDING, POS, YES
 from edc_metadata_rules import PredicateCollection
 from edc_reference.models import Reference
 
@@ -31,6 +31,8 @@ class ChildPredicates(PredicateCollection):
     infant_hiv_test_model = f'{app_label}.infanthivtesting'
     tb_hivtesting_model = f'{app_label}.hivtestingadol'
     infant_arv_proph_model = f'{app_label}.infantarvprophylaxis'
+    relationship_father_involvement_model = (
+        f'{maternal_app_label}.relationshipfatherinvolvement')
 
     @property
     def tb_presence_model_cls(self):
@@ -67,6 +69,10 @@ class ChildPredicates(PredicateCollection):
     @property
     def infant_arv_proph_model_cls(self):
         return django_apps.get_model(self.infant_arv_proph_model)
+
+    @property
+    def relationship_father_involvement_model_cls(self):
+        return django_apps.get_model(self.relationship_father_involvement_model)
 
     def func_hiv_exposed(self, visit=None, **kwargs):
         """
@@ -128,7 +134,9 @@ class ChildPredicates(PredicateCollection):
         consent_objs = caregiver_child_consent_cls.objects.filter(
             subject_identifier=visit.subject_identifier, ).exclude(
             Q(version='1') | Q(version='2'))
-        return visit.visit_code == '2000D' and visit.visit_code_sequence == 0 and \
+
+        visit_codes = ['2000D', '2002S']
+        return visit.visit_code in visit_codes and visit.visit_code_sequence == 0 and \
             consent_objs.exists()
 
     def get_child_age(self, visit=None, **kwargs):
@@ -202,12 +210,22 @@ class ChildPredicates(PredicateCollection):
 
         try:
             maternal_delivery_cls.objects.get(
+                child_subject_identifier=visit.subject_identifier,
                 subject_identifier=maternal_subject_id,
                 live_infants_to_register__gte=1)
         except maternal_delivery_cls.DoesNotExist:
             return False
         else:
             return preg_enrol
+
+    def func_birth_data_required(self, visit=None, **kwargs):
+        """Returns True if participant's mother consented to the study in pregnancy and
+        birth data has not been entered
+        """
+        bith_data_model = f'{self.app_label}.birthdata'
+        prev_bith_data_obj = self.previous_model(
+            visit=visit, model=bith_data_model)
+        return self.func_consent_study_pregnant(visit=visit) and not prev_bith_data_obj
 
     def func_mother_preg_pos(self, visit=None, **kwargs):
         """ Returns True if participant's mother consented to the study in
@@ -217,18 +235,34 @@ class ChildPredicates(PredicateCollection):
             visit=visit).hiv_status
         return (self.func_consent_study_pregnant(visit=visit) and hiv_status == POS)
 
+    def func_preg_pos_not_fu(self, visit=None, **kwargs):
+        """ Returns True if enrolled pregnant, and visit is not FU.
+        """
+        fu_visit_codes = ['3000', '3000A', '3000B', '3000C', ]
+        return self.func_mother_preg_pos(visit) and not visit.visit_code in fu_visit_codes
+
     def func_arv_proph_quart(self, visit=None, **kwargs):
         preg_pos = self.func_mother_preg_pos(visit)
         if visit.visit_code == '2001':
             return preg_pos
-        try:
-            prev_arv_proph = self.infant_arv_proph_model_cls.objects.get(
-                child_visit=visit.previous_visit)
-        except self.infant_arv_proph_model_cls.DoesNotExist:
-            return False
-        else:
-            return (prev_arv_proph.took_art_proph == YES and
-                    visit.visit_code == '2002')
+        previous_appt = self.get_previous_appt_instance(visit.appointment)
+        previous_visit = getattr(previous_appt, 'visit', None)
+        is_required = False
+        while previous_visit:
+            try:
+                prev_arv_proph = self.infant_arv_proph_model_cls.objects.get(
+                    child_visit=previous_visit)
+            except self.infant_arv_proph_model_cls.DoesNotExist:
+                is_required = True
+                previous_appt = self.get_previous_appt_instance(
+                    previous_visit.appointment)
+                previous_visit = getattr(previous_appt, 'visit', None)
+                continue
+            else:
+                status = prev_arv_proph.art_status
+                is_required = (status == 'in_progress')
+                break
+        return preg_pos and is_required
 
     def func_specimen_storage_consent(self, visit=None, **kwargs):
         """Returns True if participant's mother consented to repository blood specimen
@@ -280,7 +314,7 @@ class ChildPredicates(PredicateCollection):
         prev_instance = self.previous_model(
             visit=visit, model=penncnb_model)
         return (not prev_instance and self.func_7_years_older(visit=visit))
-    
+
     def func_brief2_parent_required(self, visit=None, **kwargs):
         brief2parent_model = f'{self.app_label}.brief2parent'
         prev_instance = self.previous_model(
@@ -355,116 +389,19 @@ class ChildPredicates(PredicateCollection):
             report_datetime__lt=visit.report_datetime).order_by(
             '-report_datetime').first()
 
-    def func_3_months_old(self, visit=None, **kwargs):
-        """
-        Returns True if the participant is 3 months old
-        """
-        child_age = self.get_child_age(visit=visit)
-        if 6 > child_age.months >= 3 and child_age.years == 0:
-            model = f'{self.app_label}.infantdevscreening3months'
-            return False if self.previous_model(visit=visit,
-                                                model=model) else True
-
-    def func_6_months_old(self, visit=None, **kwargs):
-        """
-        Returns True if the participant is 6 months old
-        """
-        child_age = self.get_child_age(visit=visit)
-        if child_age.years == 0 and 9 > child_age.months >= 6:
-            model = f'{self.app_label}.infantdevscreening6months'
-            return False if self.previous_model(visit=visit,
-                                                model=model) else True
-
-    def func_9_months_old(self, visit=None, **kwargs):
-        """
-        Returns True if the participant is 9 months old
-        """
-        child_age = self.get_child_age(visit=visit)
-        if child_age.years == 0 and 12 > child_age.months >= 9:
-            model = f'{self.app_label}.infantdevscreening9months'
-            return False if self.previous_model(visit=visit,
-                                                model=model) else True
-
-    def func_12_months_old(self, visit=None, **kwargs):
-        """
-        Returns True if the participant is 12 months old
-        """
-        child_age = self.get_child_age(visit=visit)
-        if child_age.years == 1 and child_age.months < 6:
-            model = f'{self.app_label}.infantdevscreening12months'
-            return False if self.previous_model(visit=visit,
-                                                model=model) else True
-
-    def func_18_months_old(self, visit=None, **kwargs):
-        """
-        Returns True if the participant is 18 months old
-        """
-        child_age = self.get_child_age(visit=visit)
-        if child_age.years == 1 and child_age.months >= 6:
-            model = f'{self.app_label}.infantdevscreening18months'
-            return False if self.previous_model(visit=visit,
-                                                model=model) else True
-
-    def func_36_months_old(self, visit=None, **kwargs):
-        """
-        Returns True if the participant is 36 months old
-        """
-        child_age = self.get_child_age(visit=visit)
-        if child_age.years == 3:
-            model = f'{self.app_label}.infantdevscreening36months'
-            return False if self.previous_model(visit=visit,
-                                                model=model) else True
-
-    def func_60_months_old(self, visit=None, **kwargs):
-        """
-        Returns True if the participant is 5 years old
-        """
-        child_age = self.get_child_age(visit=visit)
-        if child_age.years == 5:
-            model = f'{self.app_label}.infantdevscreening60months'
-            return False if self.previous_model(visit=visit,
-                                                model=model) else True
-
-    def func_72_months_old(self, visit=None, **kwargs):
-        """
-        Returns True if the participant is 6 years old
-        """
-        child_age = self.get_child_age(visit=visit)
-        if child_age.years == 6:
-            model = f'{self.app_label}.infantdevscreening72months'
-            return False if self.previous_model(visit=visit,
-                                                model=model) else True
-
     def func_forth_eighth_quarter(self, visit=None, **kwargs):
         """
         Returns true if the visit is the 4th annual quarterly call
         """
-        child_age = self.get_child_age(visit=visit)
-
-        caregiver_child_consent_cls = django_apps.get_model(
-            f'{self.maternal_app_label}.caregiverchildconsent')
-
-        consents = caregiver_child_consent_cls.objects.filter(
-            subject_identifier=visit.subject_identifier)
-
-        if child_age.years >= 3 and consents:
-
-            caregiver_child_consent = consents.latest('consent_datetime')
-
-            child_is_three_at_date = caregiver_child_consent.child_dob + relativedelta(
-                years=3, months=0)
-
-            if visit.report_datetime.date() >= child_is_three_at_date:
-                return int(visit.visit_code[:4]) % 4 == 0
-
-        return False
+        return int(visit.visit_code[:4]) % 4 == 0
 
     def func_2000D(self, visit, **kwargs):
         """
         Returns True if visit is 2000D
         """
+        visit_codes = ['2000D', '2002S']
 
-        return visit.visit_code == '2000D' and visit.visit_code_sequence == 0
+        return visit.visit_code in visit_codes and visit.visit_code_sequence == 0
 
     def func_cough_and_fever(self, visit, **kwargs):
 
@@ -543,6 +480,7 @@ class ChildPredicates(PredicateCollection):
             subject_identifier=visit.subject_identifier)
         try:
             enrollment_model.objects.get(
+                child_subject_identifier=visit.subject_identifier,
                 subject_identifier=maternal_subject_id)
         except enrollment_model.DoesNotExist:
             return False
@@ -552,10 +490,13 @@ class ChildPredicates(PredicateCollection):
     def func_hiv_infant_testing(self, visit=None, **kwargs):
         """
         Returns True under the following conditions:
-        - The visit code is 2001 or 2003, and the caregiver is a newly enrolled woman living with HIV.
-        - The visit code is 2002 and the child hasn't been tested for HIV in the 2001 visit.
+        - The visit code is 2001 or 2003, and the caregiver is a newly enrolled woman
+        living with HIV.
+        - The visit code is 2002 and the child hasn't been tested for HIV in the 2001
+        visit.
         - The child is still breastfeeding.
-        - The child has stopped breastfeeding and the final HIV test for the infant has not been received 6 weeks after weaning.
+        - The child has stopped breastfeeding and the final HIV test for the infant has
+        not been received 6 weeks after weaning.
         If none of these conditions are met, the function returns False.
         """
         child_subject_identifier = visit.subject_identifier
@@ -575,13 +516,20 @@ class ChildPredicates(PredicateCollection):
         if infant_feeding_crf and infant_feeding_crf.dt_weaned:
             hiv_test_6wks_post_wean = self.infant_hiv_test_model_cls.objects.filter(
                 child_visit__subject_identifier=child_subject_identifier,
-                received_date__gte=infant_feeding_crf.dt_weaned + timedelta(weeks=6)
+                received_date__gte=infant_feeding_crf.dt_weaned +
+                                   timedelta(weeks=6)
             ).exists()
 
+        child_age = self.get_child_age(visit=visit)
+
+        child_age_in_months = (child_age.years * 12) + child_age.months
+
         hiv_status = self.get_latest_maternal_hiv_status(visit=visit).hiv_status
-        if hiv_status == POS:
+
+        if (hiv_status == POS and self.func_consent_study_pregnant(visit=visit)):
             if (self.newly_enrolled(visit=visit)
-                and visit.visit_code in ['2001', '2003']):
+                    and visit.visit_code in ['2001', '2003', '3000', '3000A', '3000B',
+                                             '3000C']):
                 return True
 
             if visit.visit_code == '2002':
@@ -590,10 +538,8 @@ class ChildPredicates(PredicateCollection):
             continuing_to_bf = getattr(
                 infant_feeding_crf, 'continuing_to_bf', None)
 
-            if continuing_to_bf == YES:
-                return True
-            elif continuing_to_bf == NO and not hiv_test_6wks_post_wean:
-                return True
+            return continuing_to_bf == YES or (continuing_to_bf == NO and not
+            hiv_test_6wks_post_wean)
 
         return False
 
@@ -605,7 +551,8 @@ class ChildPredicates(PredicateCollection):
         except self.tb_hivtesting_model_cls.DoesNotExist:
             return False
         else:
-            return tb_hivtesting_obj.seen_by_healthcare == NO or tb_hivtesting_obj.referred_for_treatment == NO
+            return (tb_hivtesting_obj.seen_by_healthcare == NO or
+                    tb_hivtesting_obj.referred_for_treatment == NO)
 
     def func_tb_lab_results(self, visit, **kwargs):
         try:
@@ -625,9 +572,57 @@ class ChildPredicates(PredicateCollection):
         except self.tb_visit_screening_model_cls.DoesNotExist:
             return False
         else:
-            return tb_screening_obj.cough_duration == YES or tb_screening_obj.fever_duration == YES or tb_screening_obj.night_sweats == YES or tb_screening_obj.weight_loss == YES
+            return (tb_screening_obj.cough_duration == YES or
+                    tb_screening_obj.fever_duration == YES or
+                    tb_screening_obj.night_sweats == YES or
+                    tb_screening_obj.weight_loss == YES)
 
     def func_tbreferaladol_required(self, visit=None, **kwargs):
 
-        return self.func_tbhivtesting(visit=visit) or self.func_tb_lab_results(visit=visit) or self.func_visit_screening(visit=visit) or self.func_diagnosed_with_tb(visit=visit)
-    
+        return self.func_tbhivtesting(visit=visit) or self.func_tb_lab_results(
+            visit=visit) or self.func_visit_screening(
+            visit=visit) or self.func_diagnosed_with_tb(visit=visit)
+
+    def get_previous_appt_instance(self, appointment):
+
+        previous_appt = appointment.__class__.objects.filter(
+            subject_identifier=appointment.subject_identifier,
+            timepoint__lt=appointment.timepoint,
+            schedule_name__startswith=appointment.schedule_name[:7],
+            visit_code_sequence=0).order_by('timepoint').last()
+
+        return previous_appt or appointment.previous_by_timepoint
+
+    def func_child_tb_screening_required(self, visit=None, **kwargs):
+        """Returns true if child tb screening is required
+        """
+        child_tb_scrining_model = f'{self.app_label}.childtbscreening'
+        child_tb_scrining_model_cls = django_apps.get_model(
+            child_tb_scrining_model)
+        latest_obj = child_tb_scrining_model_cls.objects.filter(
+            child_visit__subject_identifier=visit.subject_identifier
+        ).order_by('-report_datetime').first()
+        tests = ['chest_xray_results',
+                 'sputum_sample_results',
+                 'blood_test_results',
+                 'urine_test_results',
+                 'skin_test_results']
+        return any([getattr(latest_obj, field, None) == PENDING
+                    for field in tests]) if latest_obj else True
+
+    def func_heu_status_disclosed(self, visit, **kwargs):
+        child_subject_identifier = visit.subject_identifier
+        caregiver_subject_identifier = child_utils.caregiver_subject_identifier(
+            subject_identifier=child_subject_identifier)
+        is_biological = caregiver_subject_identifier.startswith('B')
+        disclosure_crfs = ['flourish_caregiver.hivdisclosurestatusa',
+                           'flourish_caregiver.hivdisclosurestatusb',
+                           'flourish_caregiver.hivdisclosurestatusc']
+
+        for crf in disclosure_crfs:
+            model_cls = django_apps.get_model(crf)
+            disclosed_status = model_cls.objects.filter(
+                associated_child_identifier=visit.subject_identifier,
+                disclosed_status=YES).exists()
+            if disclosed_status:
+                return is_biological and self.func_hiv_exposed(visit)

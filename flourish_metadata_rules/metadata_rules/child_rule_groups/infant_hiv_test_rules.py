@@ -9,7 +9,7 @@ pc = ChildPredicates()
 
 @register()
 class InfantHIVTestRuleGroup(CrfRuleGroup):
-    tb_referral = CrfRule(
+    infant_hiv_testing = CrfRule(
         predicate=pc.func_hiv_infant_testing,
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,

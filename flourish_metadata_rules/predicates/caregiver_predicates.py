@@ -1,12 +1,14 @@
 from datetime import date
-from flourish_caregiver.helper_classes import MaternalStatusHelper
 
 from dateutil import relativedelta
 from django.apps import apps as django_apps
 from edc_base.utils import age, get_utcnow
-from edc_constants.constants import POS, YES, NEG, IND, UNK
+from edc_constants.constants import IND, NEG, PENDING, POS, UNK, YES
 from edc_metadata_rules import PredicateCollection
 from edc_reference.models import Reference
+
+from flourish_caregiver.helper_classes import MaternalStatusHelper
+from flourish_caregiver.helper_classes.utils import get_child_subject_identifier_by_visit
 
 
 def get_difference(birth_date=None):
@@ -41,22 +43,26 @@ class CaregiverPredicates(PredicateCollection):
         """
         enrollment_model = django_apps.get_model(
             f'{self.app_label}.antenatalenrollment')
+        child_subject_identifier = get_child_subject_identifier_by_visit(visit)
         try:
             enrollment_model.objects.get(
-                subject_identifier=visit.subject_identifier)
+                subject_identifier=visit.subject_identifier,
+                child_subject_identifier=child_subject_identifier)
         except enrollment_model.DoesNotExist:
             return False
         else:
             return True
 
     def currently_pregnant(self, visit=None, **kwargs):
+        child_subject_identifier = get_child_subject_identifier_by_visit(visit)
 
         if self.enrolled_pregnant(visit=visit, **kwargs):
             maternal_delivery_cls = django_apps.get_model(
                 f'{self.app_label}.maternaldelivery')
             try:
                 maternal_delivery_cls.objects.get(
-                    subject_identifier=visit.subject_identifier)
+                    subject_identifier=visit.subject_identifier,
+                    child_subject_identifier=child_subject_identifier)
             except maternal_delivery_cls.DoesNotExist:
                 return True
         return False
@@ -164,16 +170,24 @@ class CaregiverPredicates(PredicateCollection):
                 and not self.prior_participation(visit=visit))
 
     def requires_post_referral(self, model_cls, visit):
-
+        visit_code = visit.visit_code[:-2] + '0M'
+        if self.enrolled_pregnant(visit) and '_fu' not in visit.schedule_name:
+            visit_code = '1000M'
         try:
             model_obj = model_cls.objects.get(
                 maternal_visit__subject_identifier=visit.subject_identifier,
-                maternal_visit__visit_code=visit.visit_code[:-2] + '0M',
+                maternal_visit__visit_code=visit_code,
                 maternal_visit__visit_code_sequence=0)
         except model_cls.DoesNotExist:
             return False
         else:
-            return model_obj.referred_to not in ['receiving_emotional_care', 'declined']
+            is_referred = model_obj.referred_to not in ['receiving_emotional_care',
+                                                        'declined']
+            if visit.visit_code_sequence > 0:
+                referral_dt = model_obj.report_datetime.date()
+                visit_report_dt = visit.report_datetime.date()
+                return (visit_report_dt - referral_dt).days >= 7 and is_referred
+            return is_referred
 
     def func_gad_post_referral_required(self, visit=None, **kwargs):
 
@@ -194,7 +208,8 @@ class CaregiverPredicates(PredicateCollection):
         return self.requires_post_referral(edinburgh_referral_cls, visit)
 
     def func_caregiver_no_prior_participation(self, visit=None, **kwargs):
-        """Returns true if participant is a caregiver and never participated in a BHP study.
+        """Returns true if participant is a caregiver and never participated in a BHP
+        study.
         """
         return (not self.enrolled_pregnant(visit=visit)
                 and not self.prior_participation(visit=visit))
@@ -203,7 +218,7 @@ class CaregiverPredicates(PredicateCollection):
         consent_cls = django_apps.get_model(f'{self.app_label}.subjectconsent')
 
         consent_obj = consent_cls.objects.filter(
-            subject_identifier=visit.subject_identifier,).latest('created')
+            subject_identifier=visit.subject_identifier, ).latest('created')
 
         return consent_obj.biological_caregiver == YES
 
@@ -214,8 +229,7 @@ class CaregiverPredicates(PredicateCollection):
             maternal_visit=visit)
 
         return (self.func_bio_mother(visit=visit) and not self.currently_pregnant(
-            visit=visit)
-            and maternal_status_helper.hiv_status == POS)
+            visit=visit) and maternal_status_helper.hiv_status == POS)
 
     def func_bio_mothers_hiv_cohort_a(self, visit=None,
                                       maternal_status_helper=None, **kwargs):
@@ -312,15 +326,12 @@ class CaregiverPredicates(PredicateCollection):
         return len(values) == 0 and self.child_gt10_eligible(visit,
                                                              maternal_status_helper,
                                                              ['-36', ])
-    
+
     def func_post_hiv_rapid_test(self, visit, **kwargs):
         maternal_helper = MaternalStatusHelper(maternal_visit=visit)
 
-        if maternal_helper.hiv_status in [NEG, IND, UNK]:
-            
-            return True
-        else:
-            return False
+        return maternal_helper.hiv_status in [NEG, IND, UNK] and self.func_bio_mother(
+            visit=visit)
 
     def func_show_hiv_test_form(
             self, visit=None, maternal_status_helper=None, **kwargs
@@ -402,8 +413,9 @@ class CaregiverPredicates(PredicateCollection):
                                 and child_consent.child_dob:
                             child_age = age(
                                 child_consent.child_dob, get_utcnow())
-                            child_age_in_months = (
-                                child_age.years * 12) + child_age.months
+                            child_age_in_months = ((
+                                                           child_age.years * 12) +
+                                                   child_age.months)
                             if child_age_in_months < 2:
                                 try:
                                     last_tb_bj = tb_screening_form_objs.latest(
@@ -411,9 +423,11 @@ class CaregiverPredicates(PredicateCollection):
                                 except tb_screening_form_cls.DoesNotExist:
                                     return True
                                 else:
-                                    return last_tb_bj.reasons_not_participating == 'still_thinking'
+                                    return (last_tb_bj.reasons_not_participating ==
+                                            'still_thinking')
                         else:
-                            return ultrasound_obj.get_current_ga and ultrasound_obj.get_current_ga >= 22
+                            return (ultrasound_obj.get_current_ga and
+                                    ultrasound_obj.get_current_ga >= 22)
             else:
                 return False
         else:
@@ -430,13 +444,13 @@ class CaregiverPredicates(PredicateCollection):
             return False
         else:
             take_off_schedule = (
-                visit_screening.have_cough == YES or
-                visit_screening.cough_duration == '=>2 week' or
-                visit_screening.fever == YES or
-                visit_screening.night_sweats == YES or
-                visit_screening.weight_loss == YES or
-                visit_screening.cough_blood == YES or
-                visit_screening.enlarged_lymph_nodes == YES
+                    visit_screening.have_cough == YES or
+                    visit_screening.cough_duration == '=>2 week' or
+                    visit_screening.fever == YES or
+                    visit_screening.night_sweats == YES or
+                    visit_screening.weight_loss == YES or
+                    visit_screening.cough_blood == YES or
+                    visit_screening.enlarged_lymph_nodes == YES
             )
             return take_off_schedule
 
@@ -451,12 +465,14 @@ class CaregiverPredicates(PredicateCollection):
             model=f'{self.app_label}.breastfeedingquestionnaire',
             report_datetime__lt=visit.report_datetime,
             identifier=visit.subject_identifier, ).exists()
-        return (visit.visit_code > '2002M' and 
+        return (visit.visit_code > '2002M' and
                 not prev_obj and self.enrolled_pregnant(visit))
 
-    def func_show_father_involvement(self, visit=None, maternal_status_helper=None, **kwargs):
+    def func_show_father_involvement(self, visit=None, maternal_status_helper=None,
+                                     **kwargs):
         """
-        Returns true if the visit is the 4th annual quarterly call and the caregiver is HIV positive
+        Returns true if the visit is the 4th annual quarterly call and the caregiver is
+        HIV positive
         """
         maternal_status_helper = maternal_status_helper or MaternalStatusHelper(
             maternal_visit=visit)
@@ -468,30 +484,55 @@ class CaregiverPredicates(PredicateCollection):
 
         return False
 
-    def func_positive_prior_participant(self, visit=None, maternal_status_helper=None, **kwargs):
+    def func_positive_prior_participant(self, visit=None, maternal_status_helper=None,
+                                        **kwargs):
         """Returns true if participant is from a prior bhp participant and 
         """
         maternal_status_helper = maternal_status_helper or MaternalStatusHelper(
             maternal_visit=visit)
 
-        return visit.visit_code != '1000M' and self.prior_participation(visit=visit) and self.func_hiv_positive(visit=visit)
+        return visit.visit_code != '1000M' and self.prior_participation(
+            visit=visit) and self.func_hiv_positive(visit=visit)
 
     def func_enrolment_LWHIV(self, visit=None, **kwargs):
         """Returns true if women LWHIV and enrolment visit i.e. (1000M or 2000M)
         """
         hiv_pos = self.func_hiv_positive(visit)
-        return visit.visit_code in ['1000M', '2000M'] and hiv_pos
+        is_bio_caregiver = 'B' in visit.subject_identifier
+        return visit.visit_code in ['1000M', '2000M'] and hiv_pos and is_bio_caregiver
 
     def func_interview_focus_group_interest(self, visit=None, **kwargs):
-        interview_focus_group_interest_cls = django_apps.get_model(
-            'flourish_caregiver.interviewfocusgroupinterestv2')
-        try:
-            interview_focus_group_interest_cls.objects.get(
-                maternal_visit__subject_identifier=visit.subject_identifier,
-                maternal_visit__schedule_name__icontains='quart',
-            )
-        except interview_focus_group_interest_cls.DoesNotExist:
-            return False
-        else:
-            return True
-            
+        """ Returns true if there's no previous instance of interview focus and
+        interview crf
+            otherwise returns false. NOTE: checks across both version 1 and 2 of the crf.
+        """
+        interview_focus_crfs = ['interviewfocusgroupinterest',
+                                'interviewfocusgroupinterestv2']
+        for interview_crf in interview_focus_crfs:
+            interview_focus_cls = django_apps.get_model(
+                f'{self.app_label}.{interview_crf}')
+            try:
+                interview_focus_cls.objects.get(
+                    maternal_visit__subject_identifier=visit.subject_identifier,
+                    maternal_visit__schedule_name__icontains='quart', )
+            except interview_focus_cls.DoesNotExist:
+                continue
+            else:
+                return True
+        return False
+
+    def func_caregiver_tb_screening(self, visit=None, **kwargs):
+        """Returns true if caregiver TB screening crf is required
+        """
+        caregiver_tb_screening_model_cls = django_apps.get_model(
+            f'{self.app_label}.caregivertbscreening')
+        latest_obj = caregiver_tb_screening_model_cls.objects.filter(
+            maternal_visit__subject_identifier=visit.subject_identifier
+        ).order_by('-report_datetime').first()
+        tests = ['chest_xray_results',
+                 'sputum_sample_results',
+                 'blood_test_results',
+                 'urine_test_results',
+                 'skin_test_results']
+        return any([getattr(latest_obj, field, None) == PENDING
+                    for field in tests]) if latest_obj else True

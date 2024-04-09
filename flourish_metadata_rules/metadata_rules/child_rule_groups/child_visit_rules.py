@@ -1,6 +1,6 @@
-from edc_constants.constants import YES
+from edc_constants.constants import YES, PARTICIPANT
 from edc_metadata import NOT_REQUIRED, REQUIRED
-from edc_metadata_rules import CrfRule, CrfRuleGroup, register, P
+from edc_metadata_rules import CrfRule, CrfRuleGroup, P, register
 
 from ...predicates import ChildPredicates
 
@@ -11,14 +11,20 @@ pc = ChildPredicates()
 @register()
 class ChildVisitRuleGroup(CrfRuleGroup):
 
+    child_clinician_notes = CrfRule(
+        predicate=P('info_source', 'eq', PARTICIPANT),
+        consequence=REQUIRED,
+        alternative=NOT_REQUIRED,
+        target_models=[f'{app_label}.childcliniciannotes'])
+
     birth_exam = CrfRule(
         predicate=P('is_present', 'eq', YES),
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.birthexam', ])
 
-    consent_study_pregnant = CrfRule(
-        predicate=pc.func_consent_study_pregnant,
+    birth_data_rule = CrfRule(
+        predicate=pc.func_birth_data_required,
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.birthdata', ])
@@ -68,7 +74,7 @@ class ChildVisitRuleGroup(CrfRuleGroup):
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.childphqdepressionscreening',
                        f'{app_label}.childgadanxietyscreening', ])
-    
+
     older_than_11 = CrfRule(
         predicate=pc.func_brief2_self_required,
         consequence=REQUIRED,
@@ -93,54 +99,6 @@ class ChildVisitRuleGroup(CrfRuleGroup):
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.childworkingstatus', ])
 
-    age_3_months_old = CrfRule(
-        predicate=pc.func_3_months_old,
-        consequence=REQUIRED,
-        alternative=NOT_REQUIRED,
-        target_models=[f'{app_label}.infantdevscreening3months', ])
-
-    age_6_months_old = CrfRule(
-        predicate=pc.func_6_months_old,
-        consequence=REQUIRED,
-        alternative=NOT_REQUIRED,
-        target_models=[f'{app_label}.infantdevscreening6months', ])
-
-    age_9_months_old = CrfRule(
-        predicate=pc.func_9_months_old,
-        consequence=REQUIRED,
-        alternative=NOT_REQUIRED,
-        target_models=[f'{app_label}.infantdevscreening9months', ])
-
-    age_12_months_old = CrfRule(
-        predicate=pc.func_12_months_old,
-        consequence=REQUIRED,
-        alternative=NOT_REQUIRED,
-        target_models=[f'{app_label}.infantdevscreening12months', ])
-
-    age_18_months_old = CrfRule(
-        predicate=pc.func_18_months_old,
-        consequence=REQUIRED,
-        alternative=NOT_REQUIRED,
-        target_models=[f'{app_label}.infantdevscreening18months', ])
-
-    age_36_months_old = CrfRule(
-        predicate=pc.func_36_months_old,
-        consequence=REQUIRED,
-        alternative=NOT_REQUIRED,
-        target_models=[f'{app_label}.infantdevscreening36months', ])
-
-    age_60_months_old = CrfRule(
-        predicate=pc.func_60_months_old,
-        consequence=REQUIRED,
-        alternative=NOT_REQUIRED,
-        target_models=[f'{app_label}.infantdevscreening60months', ])
-
-    age_72_months_old = CrfRule(
-        predicate=pc.func_72_months_old,
-        consequence=REQUIRED,
-        alternative=NOT_REQUIRED,
-        target_models=[f'{app_label}.infantdevscreening72months', ])
-
     forth_eighth_quarter = CrfRule(
         predicate=pc.func_forth_eighth_quarter,
         consequence=REQUIRED,
@@ -158,15 +116,33 @@ class ChildVisitRuleGroup(CrfRuleGroup):
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.childphqpostreferral'])
-    
+
     adol_tb_results = CrfRule(
         predicate=pc.func_tb_lab_results_exist,
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
-        target_models=[f'{app_label}.tblabresultsadol',]
+        target_models=[f'{app_label}.tblabresultsadol', ]
     )
+
+    child_tb_screening = CrfRule(
+        predicate=pc.func_child_tb_screening_required,
+        consequence=REQUIRED,
+        alternative=NOT_REQUIRED,
+        target_models=[f'{app_label}.childtbscreening', ]
+    )
+
+    infant_hiv_testing = CrfRule(
+        predicate=pc.func_hiv_infant_testing,
+        consequence=REQUIRED,
+        alternative=NOT_REQUIRED,
+        target_models=[f'{app_label}.infanthivtesting', ])
+
+    safi_stigma = CrfRule(
+        predicate=pc.func_heu_status_disclosed,
+        consequence=REQUIRED,
+        alternative=NOT_REQUIRED,
+        target_models=[f'{app_label}.childsafistigma', ])
 
     class Meta:
         app_label = app_label
         source_model = f'{app_label}.childvisit'
-        
