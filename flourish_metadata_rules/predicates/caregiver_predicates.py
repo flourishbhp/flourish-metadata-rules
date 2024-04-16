@@ -377,8 +377,8 @@ class CaregiverPredicates(PredicateCollection):
                             child_age = age(
                                 child_consent.child_dob, get_utcnow())
                             child_age_in_months = ((
-                                                           child_age.years * 12) +
-                                                   child_age.months)
+                                child_age.years * 12) +
+                                child_age.months)
                             if child_age_in_months < 2:
                                 try:
                                     last_tb_bj = tb_screening_form_objs.latest(
@@ -407,13 +407,13 @@ class CaregiverPredicates(PredicateCollection):
             return False
         else:
             take_off_schedule = (
-                    visit_screening.have_cough == YES or
-                    visit_screening.cough_duration == '=>2 week' or
-                    visit_screening.fever == YES or
-                    visit_screening.night_sweats == YES or
-                    visit_screening.weight_loss == YES or
-                    visit_screening.cough_blood == YES or
-                    visit_screening.enlarged_lymph_nodes == YES
+                visit_screening.have_cough == YES or
+                visit_screening.cough_duration == '=>2 week' or
+                visit_screening.fever == YES or
+                visit_screening.night_sweats == YES or
+                visit_screening.weight_loss == YES or
+                visit_screening.cough_blood == YES or
+                visit_screening.enlarged_lymph_nodes == YES
             )
             return take_off_schedule
 
@@ -499,3 +499,26 @@ class CaregiverPredicates(PredicateCollection):
                  'skin_test_results']
         return any([getattr(latest_obj, field, None) == PENDING
                     for field in tests]) if latest_obj else True
+
+    def func_caregiver_social_work_referral_required(self, visit=None, **kwargs):
+        """Returns true if caregiver Social _work referral crf is required
+        """
+
+        caregiver_cage_aid_model_cls = django_apps.get_model(
+            f'{self.app_label}.caregivercageaid')
+        try:
+            cage_obj = caregiver_cage_aid_model_cls.objects.get(
+                maternal_visit__subject_identifier=visit.subject_identifier
+            )
+        except caregiver_cage_aid_model_cls.DoesNotExist:
+            pass
+        else:
+            return (
+                cage_obj.alcohol_drugs == YES or
+                cage_obj.cut_down == YES or
+                cage_obj.people_reaction == YES or
+                cage_obj.guilt == YES or
+                cage_obj.eye_opener == YES
+
+            )
+        return False
