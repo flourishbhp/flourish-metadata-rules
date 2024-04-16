@@ -13,3 +13,4 @@ from .tb_engagement_rules import TbEngagementRuleGroup
 from .tb_interview_rules import TbInterviewRuleGroup
 from .tb_schedule_rules import TbScheduleRuleGroup
 from .tb_screening_rules import TbScreeningRules
+from .caregiver_cage_aid_rules import CaregiverCageAidRuleGroup
