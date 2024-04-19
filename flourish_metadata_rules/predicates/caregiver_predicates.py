@@ -503,13 +503,13 @@ class CaregiverPredicates(PredicateCollection):
     def func_caregiver_social_work_referral_required(self, visit=None, **kwargs):
         """Returns true if caregiver Social _work referral crf is required
         """
-
         caregiver_cage_aid_model_cls = django_apps.get_model(
             f'{self.app_label}.caregivercageaid')
         try:
             cage_obj = caregiver_cage_aid_model_cls.objects.get(
-                maternal_visit__subject_identifier=visit.subject_identifier
+                maternal_visit=visit
             )
+
         except caregiver_cage_aid_model_cls.DoesNotExist:
             pass
         else:
@@ -518,7 +518,27 @@ class CaregiverPredicates(PredicateCollection):
                 cage_obj.cut_down == YES or
                 cage_obj.people_reaction == YES or
                 cage_obj.guilt == YES or
-                cage_obj.eye_opener == YES
+                cage_obj.eye_opener == YES or
+                self.func_counselling_referral(visit=visit)
 
             )
         return False
+
+    def func_counselling_referral(self, visit=None, **kwargs):
+        """Returns true if couselling_referral is yes 
+        """
+        relationship_with_father_cls = django_apps.get_model(
+            f'{self.app_label}.relationshipfatherinvolvement')
+        try:
+            relationship_with_father_obj = relationship_with_father_cls.objects.get(
+                maternal_visit=visit)
+        except relationship_with_father_cls.DoesNotExist:
+            pass
+        else:
+            return relationship_with_father_obj.conunselling_referral == YES
+        return False
+
+    def func_caregiver_social_work_referral_required_relation(self, visit=None, **kwargs):
+        """Returns true if caregiver Social _work referral crf is required
+        """
+        return self.func_caregiver_social_work_referral_required
