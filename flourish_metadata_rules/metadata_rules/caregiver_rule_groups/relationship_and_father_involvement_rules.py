@@ -1,14 +1,15 @@
-from edc_metadata_rules import CrfRule, CrfRuleGroup, register, P
-from edc_constants.constants import YES
+from edc_metadata_rules import CrfRule, CrfRuleGroup, register
 from edc_metadata import NOT_REQUIRED, REQUIRED
+from flourish_metadata_rules.predicates import CaregiverPredicates
 
 app_label = 'flourish_caregiver'
+pc = CaregiverPredicates()
 
 
 @register()
 class RelationshipFatherInvolvementRuleGroup(CrfRuleGroup):
     caregiver_social_work_referral = CrfRule(
-        predicate=P('conunselling_referral', 'eq', YES),
+        predicate=pc.func_caregiver_social_work_referral_required_relation,
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.caregiversocialworkreferral'],
