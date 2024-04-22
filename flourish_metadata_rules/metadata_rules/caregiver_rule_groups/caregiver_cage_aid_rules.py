@@ -9,7 +9,7 @@ pc = CaregiverPredicates()
 @register()
 class CaregiverCageAidRuleGroup(CrfRuleGroup):
     cage_aid = CrfRule(
-        predicate=pc.func_caregiver_social_work_referral_required,
+        predicate=pc.func_caregiver_social_work_referral_required_relation,
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.caregiversocialworkreferral'],
