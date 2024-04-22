@@ -553,8 +553,7 @@ class CaregiverPredicates(PredicateCollection):
                 cage_obj.cut_down == YES or
                 cage_obj.people_reaction == YES or
                 cage_obj.guilt == YES or
-                cage_obj.eye_opener == YES or
-                self.func_counselling_referral(visit=visit)
+                cage_obj.eye_opener == YES
 
             )
         return False
@@ -576,7 +575,7 @@ class CaregiverPredicates(PredicateCollection):
     def func_caregiver_social_work_referral_required_relation(self, visit=None, **kwargs):
         """Returns true if caregiver Social _work referral crf is required
         """
-        return self.func_caregiver_social_work_referral_required
+        return self.func_caregiver_social_work_referral_required(visit=visit) or self.func_counselling_referral(visit=visit)
 
     def func_show_breast_milk_crf(self, visit=None, **kwargs):
         """Returns true if participant is breastfeeding of breastfeeding and formula feeding.
