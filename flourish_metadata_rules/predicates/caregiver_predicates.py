@@ -502,18 +502,20 @@ class CaregiverPredicates(PredicateCollection):
                     for field in tests]) if latest_obj else True
 
     def func_show_breast_milk_crf(self, visit=None, **kwargs):
-        """Returns true if participant is breastfeeding of breastfeeding and formula feeding.
+        """ Returns true if participant is breastfeeding of breastfeeding and formula feeding
+            and LWHIV ONLY.
         """
         child_subject_identifier = get_child_subject_identifier_by_visit(visit)
 
-        if self.enrolled_pregnant(visit=visit, **kwargs):
+        if self.enrolled_pregnant(visit=visit, **kwargs) and self.func_hiv_positive(visit):
             birth_form_model_cls = django_apps.get_model(
                 f'{self.app_label}.maternaldelivery')
             try:
                 birth_form_obj = birth_form_model_cls.objects.get(
                     subject_identifier=visit.subject_identifier,
                     child_subject_identifier=child_subject_identifier)
-                return birth_form_obj.feeding_mode == BREASTFEED_ONLY or birth_form_obj.feeding_mode == 'mixed_feeding'
-
             except birth_form_model_cls.DoesNotExist:
                 return False
+            else:
+                return (birth_form_obj.feeding_mode == BREASTFEED_ONLY or
+                        birth_form_obj.feeding_mode == 'mixed_feeding')
