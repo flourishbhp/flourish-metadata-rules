@@ -595,7 +595,7 @@ class CaregiverPredicates(PredicateCollection):
         return False
 
     def func_counselling_referral(self, visit=None, **kwargs):
-        """Returns true if couselling_referral is yes 
+        """Returns true if couselling_referral is yes
         """
         relationship_with_father_cls = django_apps.get_model(
             f'{self.app_label}.relationshipfatherinvolvement')
@@ -611,21 +611,24 @@ class CaregiverPredicates(PredicateCollection):
     def func_caregiver_social_work_referral_required_relation(self, visit=None, **kwargs):
         """Returns true if caregiver Social _work referral crf is required
         """
-        return self.func_caregiver_social_work_referral_required(visit=visit) or self.func_counselling_referral(visit=visit)
+        return (self.func_caregiver_social_work_referral_required(visit=visit) or
+                self.func_counselling_referral(visit=visit))
 
     def func_show_breast_milk_crf(self, visit=None, **kwargs):
-        """Returns true if participant is breastfeeding of breastfeeding and formula feeding.
+        """ Returns true if participant is breastfeeding of breastfeeding and formula feeding
+            and LWHIV ONLY.
         """
         child_subject_identifier = get_child_subject_identifier_by_visit(visit)
 
-        if self.enrolled_pregnant(visit=visit, **kwargs):
+        if self.enrolled_pregnant(visit=visit, **kwargs) and self.func_hiv_positive(visit):
             birth_form_model_cls = django_apps.get_model(
                 f'{self.app_label}.maternaldelivery')
             try:
                 birth_form_obj = birth_form_model_cls.objects.get(
                     subject_identifier=visit.subject_identifier,
                     child_subject_identifier=child_subject_identifier)
-                return birth_form_obj.feeding_mode == BREASTFEED_ONLY or birth_form_obj.feeding_mode == 'mixed_feeding'
-
             except birth_form_model_cls.DoesNotExist:
                 return False
+            else:
+                return (birth_form_obj.feeding_mode == BREASTFEED_ONLY or
+                        birth_form_obj.feeding_mode == 'mixed_feeding')

@@ -155,10 +155,10 @@ class MaternalVisitRuleGroup(CrfRuleGroup):
     )
 
     parent_adol_crf = CrfRule(
-        predicate = pc.func_child_age_gte10,
+        predicate=pc.func_child_age_gte10,
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
-        target_models=[f'{app_label}.parentadolrelationshipscale',])
+        target_models=[f'{app_label}.parentadolrelationshipscale', ])
 
     class Meta:
         app_label = app_label
