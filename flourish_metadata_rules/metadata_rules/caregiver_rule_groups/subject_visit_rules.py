@@ -1,8 +1,6 @@
 from edc_metadata import NOT_REQUIRED, REQUIRED
-from edc_metadata_rules import CrfRule, CrfRuleGroup, register
+from edc_metadata_rules import CrfRule, CrfRuleGroup, register, P
 from edc_constants.constants import PARTICIPANT
-from edc_metadata_rules import P
-
 from ...predicates import CaregiverPredicates
 
 app_label = 'flourish_caregiver'
@@ -11,13 +9,13 @@ pc = CaregiverPredicates()
 
 @register()
 class MaternalVisitRuleGroup(CrfRuleGroup):
-    
+
     clinician_notes = CrfRule(
         predicate=P('info_source', 'eq', PARTICIPANT),
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.cliniciannotes'])
-    
+
     pregnant = CrfRule(
         predicate=pc.enrolled_pregnant,
         consequence=REQUIRED,
@@ -141,6 +139,26 @@ class MaternalVisitRuleGroup(CrfRuleGroup):
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.caregivertbscreening', ])
+
+    caregiver_tb_referral_outcome = CrfRule(
+        predicate=pc.func_caregiver_tb_referral_outcome,
+        consequence=REQUIRED,
+        alternative=NOT_REQUIRED,
+        target_models=[f'{app_label}.caregivertbreferraloutcome', ])
+
+    breast_milk_crf = CrfRule(
+        predicate=pc.func_show_breast_milk_crf,
+        consequence=REQUIRED,
+        alternative=NOT_REQUIRED,
+        target_models=[f'{app_label}.breastmilkbirth',
+                       f'{app_label}.breastmilk6months'],
+    )
+
+    parent_adol_crf = CrfRule(
+        predicate=pc.func_child_age_gte10,
+        consequence=REQUIRED,
+        alternative=NOT_REQUIRED,
+        target_models=[f'{app_label}.parentadolrelationshipscale', ])
 
     class Meta:
         app_label = app_label
