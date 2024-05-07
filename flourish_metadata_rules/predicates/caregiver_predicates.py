@@ -77,7 +77,7 @@ class CaregiverPredicates(PredicateCollection):
             return False
         else:
             return True
-        
+
     def child_gt10(self, visit):
 
         onschedule_model = django_apps.get_model(
@@ -115,7 +115,7 @@ class CaregiverPredicates(PredicateCollection):
                     if (child_age <= 15.9 and child_age >= 10):
                         return [True, child_subject_identifier]
         return [False, child_subject_identifier]
-    
+
     def func_child_age(self, visit=None, **kwargs):
         onschedule_model = django_apps.get_model(
             visit.appointment.schedule.onschedule_model)
@@ -148,9 +148,9 @@ class CaregiverPredicates(PredicateCollection):
                 if child_dob and child_dob < report_datetime.date():
                     child_age = age(child_dob, report_datetime)
                     return child_age
-                
+
     def func_child_age_gte10(self, visit, **kwargs):
-        child_age =  self.func_child_age(visit=visit, **kwargs)
+        child_age = self.func_child_age(visit=visit, **kwargs)
         return child_age.years >= 10 if child_age else False
 
     def prior_participation(self, visit=None, **kwargs):
@@ -497,7 +497,7 @@ class CaregiverPredicates(PredicateCollection):
         """Returns true if women LWHIV and enrolment visit i.e. (1000M or 2000M)
         """
         hiv_pos = self.func_hiv_positive(visit)
-        is_bio_caregiver = 'B' in visit.subject_identifier
+        is_bio_caregiver = self.func_bio_mother(visit=visit)
         return visit.visit_code in ['1000M', '2000M'] and hiv_pos and is_bio_caregiver
 
     def func_interview_focus_group_interest(self, visit=None, **kwargs):

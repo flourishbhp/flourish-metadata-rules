@@ -1,5 +1,4 @@
 from datetime import timedelta
-from datetime import datetime
 from django.apps import apps as django_apps
 from django.db.models import Q
 from edc_base.utils import age, get_utcnow
@@ -681,9 +680,8 @@ class ChildPredicates(PredicateCollection):
 
     def func_heu_status_disclosed(self, visit, **kwargs):
         child_subject_identifier = visit.subject_identifier
-        caregiver_subject_identifier = child_utils.caregiver_subject_identifier(
-            subject_identifier=child_subject_identifier)
-        is_biological = caregiver_subject_identifier.startswith('B')
+        is_biological = child_utils.is_bio_mother(child_subject_identifier)
+
         disclosure_crfs = ['flourish_caregiver.hivdisclosurestatusa',
                            'flourish_caregiver.hivdisclosurestatusb',
                            'flourish_caregiver.hivdisclosurestatusc']
