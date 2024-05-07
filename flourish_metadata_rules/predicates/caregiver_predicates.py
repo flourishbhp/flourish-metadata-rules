@@ -462,7 +462,7 @@ class CaregiverPredicates(PredicateCollection):
         """Returns true if women LWHIV and enrolment visit i.e. (1000M or 2000M)
         """
         hiv_pos = self.func_hiv_positive(visit)
-        is_bio_caregiver = 'B' in visit.subject_identifier
+        is_bio_caregiver = self.func_bio_mother(visit=visit)
         return visit.visit_code in ['1000M', '2000M'] and hiv_pos and is_bio_caregiver
 
     def func_interview_focus_group_interest(self, visit=None, **kwargs):
