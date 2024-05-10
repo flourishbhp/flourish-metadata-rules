@@ -21,3 +21,17 @@ class BreastMilk6MonthsReqRuleGroup(RequisitionRuleGroup):
         app_label = app_label
         source_model = f'{app_label}.breastmilk6months'
         requisition_model = f'{app_label}.caregiverrequisition'
+
+
+@register()
+class BreastMilkBirthReqRuleGroup(RequisitionRuleGroup):
+    breast_milk_panel = RequisitionRule(
+        predicate=P('milk_collected', 'eq', YES),
+        consequence=REQUIRED,
+        alternative=NOT_REQUIRED,
+        target_panels=[breast_milk_panel, ])
+
+    class Meta:
+        app_label = app_label
+        source_model = f'{app_label}.breastmilkbirth'
+        requisition_model = f'{app_label}.caregiverrequisition'
