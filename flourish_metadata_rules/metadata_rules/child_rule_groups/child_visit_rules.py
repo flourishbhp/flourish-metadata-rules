@@ -141,7 +141,7 @@ class ChildVisitRuleGroup(CrfRuleGroup):
         predicate=pc.func_child_tb_referral_outcome,
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
-        target_models=[f'{app_label}.childtbreferraloutcome',]
+        target_models=[f'{app_label}.childtbreferraloutcome', ]
     )
 
     infant_hiv_testing = CrfRule(
