@@ -6,7 +6,7 @@ from edc_base.utils import age, get_utcnow
 from edc_constants.constants import IND, NEG, PENDING, POS, UNK, YES
 from edc_metadata_rules import PredicateCollection
 from edc_reference.models import Reference
-
+from flourish_caregiver.choices import BREASTFEED_ONLY
 from flourish_caregiver.helper_classes import MaternalStatusHelper
 from flourish_caregiver.helper_classes.utils import get_child_subject_identifier_by_visit
 
@@ -377,8 +377,8 @@ class CaregiverPredicates(PredicateCollection):
                             child_age = age(
                                 child_consent.child_dob, get_utcnow())
                             child_age_in_months = ((
-                                                           child_age.years * 12) +
-                                                   child_age.months)
+                                child_age.years * 12) +
+                                child_age.months)
                             if child_age_in_months < 2:
                                 try:
                                     last_tb_bj = tb_screening_form_objs.latest(
@@ -407,13 +407,13 @@ class CaregiverPredicates(PredicateCollection):
             return False
         else:
             take_off_schedule = (
-                    visit_screening.have_cough == YES or
-                    visit_screening.cough_duration == '=>2 week' or
-                    visit_screening.fever == YES or
-                    visit_screening.night_sweats == YES or
-                    visit_screening.weight_loss == YES or
-                    visit_screening.cough_blood == YES or
-                    visit_screening.enlarged_lymph_nodes == YES
+                visit_screening.have_cough == YES or
+                visit_screening.cough_duration == '=>2 week' or
+                visit_screening.fever == YES or
+                visit_screening.night_sweats == YES or
+                visit_screening.weight_loss == YES or
+                visit_screening.cough_blood == YES or
+                visit_screening.enlarged_lymph_nodes == YES
             )
             return take_off_schedule
 
@@ -499,3 +499,100 @@ class CaregiverPredicates(PredicateCollection):
                  'skin_test_results']
         return any([getattr(latest_obj, field, None) == PENDING
                     for field in tests]) if latest_obj else True
+
+    def func_caregiver_tb_referral_outcome(self, visit=None, **kwargs):
+        """Returns true if caregiver TB referral outcome crf is required
+        """
+        prev_caregiver_tb_referral_objs = Reference.objects.filter(
+            model=f'{self.app_label}.tbreferralcaregiver',
+            report_datetime__lt=visit.report_datetime,
+            identifier=visit.subject_identifier, )
+        prev_caregiver_tb_referral_outcome_objs = Reference.objects.filter(
+            model=f'{self.app_label}.caregivertbreferraloutcome',
+            report_datetime__lt=visit.report_datetime,
+            identifier=visit.subject_identifier, )
+
+        if prev_caregiver_tb_referral_objs.exists():
+            return prev_caregiver_tb_referral_objs.count() > \
+                prev_caregiver_tb_referral_outcome_objs.count()
+        return False
+
+    def func_caregiver_tb_referral_required(self, visit=None, **kwargs):
+        """Returns true if caregiver TB referral crf is required
+        """
+        caregiver_tb_screening_model_cls = django_apps.get_model(
+            f'{self.app_label}.caregivertbscreening')
+        latest_obj = caregiver_tb_screening_model_cls.objects.filter(
+            maternal_visit__subject_identifier=visit.subject_identifier
+        ).order_by('-report_datetime').first()
+        if latest_obj:
+            return (
+                latest_obj.cough_duration == '≥ 2 weeks' or
+                latest_obj.fever == YES or
+                latest_obj.sweats == YES or
+                latest_obj.weight_loss == YES
+
+            )
+        return False
+
+    def func_caregiver_social_work_referral_required(self, visit=None, **kwargs):
+        """Returns true if caregiver Social _work referral crf is required
+        """
+        caregiver_cage_aid_model_cls = django_apps.get_model(
+            f'{self.app_label}.caregivercageaid')
+        try:
+            cage_obj = caregiver_cage_aid_model_cls.objects.get(
+                maternal_visit=visit
+            )
+
+        except caregiver_cage_aid_model_cls.DoesNotExist:
+            pass
+        else:
+            return (
+                cage_obj.alcohol_drugs == YES or
+                cage_obj.cut_down == YES or
+                cage_obj.people_reaction == YES or
+                cage_obj.guilt == YES or
+                cage_obj.eye_opener == YES
+
+            )
+        return False
+
+    def func_counselling_referral(self, visit=None, **kwargs):
+        """Returns true if couselling_referral is yes
+        """
+        relationship_with_father_cls = django_apps.get_model(
+            f'{self.app_label}.relationshipfatherinvolvement')
+        try:
+            relationship_with_father_obj = relationship_with_father_cls.objects.get(
+                maternal_visit=visit)
+        except relationship_with_father_cls.DoesNotExist:
+            pass
+        else:
+            return relationship_with_father_obj.conunselling_referral == YES
+        return False
+
+    def func_caregiver_social_work_referral_required_relation(self, visit=None, **kwargs):
+        """Returns true if caregiver Social _work referral crf is required
+        """
+        return (self.func_caregiver_social_work_referral_required(visit=visit) or
+                self.func_counselling_referral(visit=visit))
+
+    def func_show_breast_milk_crf(self, visit=None, **kwargs):
+        """ Returns true if participant is breastfeeding of breastfeeding and formula feeding
+            and LWHIV ONLY.
+        """
+        child_subject_identifier = get_child_subject_identifier_by_visit(visit)
+
+        if self.enrolled_pregnant(visit=visit, **kwargs) and self.func_hiv_positive(visit):
+            birth_form_model_cls = django_apps.get_model(
+                f'{self.app_label}.maternaldelivery')
+            try:
+                birth_form_obj = birth_form_model_cls.objects.get(
+                    subject_identifier=visit.subject_identifier,
+                    child_subject_identifier=child_subject_identifier)
+            except birth_form_model_cls.DoesNotExist:
+                return False
+            else:
+                return (birth_form_obj.feeding_mode == BREASTFEED_ONLY or
+                        birth_form_obj.feeding_mode == 'Both breastfeeding and formula feeding')
