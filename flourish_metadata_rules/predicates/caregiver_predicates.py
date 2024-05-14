@@ -4,6 +4,7 @@ from dateutil import relativedelta
 from django.apps import apps as django_apps
 from edc_base.utils import age, get_utcnow
 from edc_constants.constants import IND, NEG, PENDING, POS, UNK, YES
+from flourish_caregiver.constants import BREASTFEED_ONLY
 from edc_metadata_rules import PredicateCollection
 from edc_reference.models import Reference
 
@@ -377,8 +378,8 @@ class CaregiverPredicates(PredicateCollection):
                             child_age = age(
                                 child_consent.child_dob, get_utcnow())
                             child_age_in_months = ((
-                                                           child_age.years * 12) +
-                                                   child_age.months)
+                                child_age.years * 12) +
+                                child_age.months)
                             if child_age_in_months < 2:
                                 try:
                                     last_tb_bj = tb_screening_form_objs.latest(
@@ -407,13 +408,13 @@ class CaregiverPredicates(PredicateCollection):
             return False
         else:
             take_off_schedule = (
-                    visit_screening.have_cough == YES or
-                    visit_screening.cough_duration == '=>2 week' or
-                    visit_screening.fever == YES or
-                    visit_screening.night_sweats == YES or
-                    visit_screening.weight_loss == YES or
-                    visit_screening.cough_blood == YES or
-                    visit_screening.enlarged_lymph_nodes == YES
+                visit_screening.have_cough == YES or
+                visit_screening.cough_duration == '=>2 week' or
+                visit_screening.fever == YES or
+                visit_screening.night_sweats == YES or
+                visit_screening.weight_loss == YES or
+                visit_screening.cough_blood == YES or
+                visit_screening.enlarged_lymph_nodes == YES
             )
             return take_off_schedule
 
@@ -461,7 +462,7 @@ class CaregiverPredicates(PredicateCollection):
         """Returns true if women LWHIV and enrolment visit i.e. (1000M or 2000M)
         """
         hiv_pos = self.func_hiv_positive(visit)
-        is_bio_caregiver = 'B' in visit.subject_identifier
+        is_bio_caregiver = self.func_bio_mother(visit=visit)
         return visit.visit_code in ['1000M', '2000M'] and hiv_pos and is_bio_caregiver
 
     def func_interview_focus_group_interest(self, visit=None, **kwargs):
@@ -499,3 +500,22 @@ class CaregiverPredicates(PredicateCollection):
                  'skin_test_results']
         return any([getattr(latest_obj, field, None) == PENDING
                     for field in tests]) if latest_obj else True
+
+    def func_show_breast_milk_crf(self, visit=None, **kwargs):
+        """ Returns true if participant is breastfeeding of breastfeeding and formula feeding
+            and LWHIV ONLY.
+        """
+        child_subject_identifier = get_child_subject_identifier_by_visit(visit)
+
+        if self.enrolled_pregnant(visit=visit, **kwargs) and self.func_hiv_positive(visit):
+            birth_form_model_cls = django_apps.get_model(
+                f'{self.app_label}.maternaldelivery')
+            try:
+                birth_form_obj = birth_form_model_cls.objects.get(
+                    subject_identifier=visit.subject_identifier,
+                    child_subject_identifier=child_subject_identifier)
+            except birth_form_model_cls.DoesNotExist:
+                return False
+            else:
+                return (birth_form_obj.feeding_mode == BREASTFEED_ONLY or
+                        birth_form_obj.feeding_mode == 'mixed_feeding')
