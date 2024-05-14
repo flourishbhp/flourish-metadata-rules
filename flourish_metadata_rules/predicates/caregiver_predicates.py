@@ -631,4 +631,4 @@ class CaregiverPredicates(PredicateCollection):
                 return False
             else:
                 return (birth_form_obj.feeding_mode == BREASTFEED_ONLY or
-                        birth_form_obj.feeding_mode == 'mixed_feeding')
+                        birth_form_obj.feeding_mode == 'Both breastfeeding and formula feeding')
