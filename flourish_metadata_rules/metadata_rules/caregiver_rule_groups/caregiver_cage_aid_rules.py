@@ -7,8 +7,8 @@ pc = CaregiverPredicates()
 
 
 @register()
-class RelationshipFatherInvolvementRuleGroup(CrfRuleGroup):
-    caregiver_social_work_referral = CrfRule(
+class CaregiverCageAidRuleGroup(CrfRuleGroup):
+    cage_aid = CrfRule(
         predicate=pc.func_caregiver_social_work_referral_required_relation,
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
@@ -17,4 +17,4 @@ class RelationshipFatherInvolvementRuleGroup(CrfRuleGroup):
 
     class Meta:
         app_label = app_label
-        source_model = f'{app_label}.relationshipfatherinvolvement'
+        source_model = f'{app_label}.caregivercageaid'

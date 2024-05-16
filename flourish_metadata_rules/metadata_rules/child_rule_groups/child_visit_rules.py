@@ -81,6 +81,12 @@ class ChildVisitRuleGroup(CrfRuleGroup):
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.brief2selfreported', ])
 
+    older_than_15_cage = CrfRule(
+        predicate=pc.func_15_years_older,
+        consequence=REQUIRED,
+        alternative=NOT_REQUIRED,
+        target_models=[f'{app_label}.childcageaid', ])
+
     brief_parent_exists = CrfRule(
         predicate=pc.func_brief2_parent_required,
         consequence=REQUIRED,
@@ -135,7 +141,7 @@ class ChildVisitRuleGroup(CrfRuleGroup):
         predicate=pc.func_child_tb_referral_outcome,
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
-        target_models=[f'{app_label}.childtbreferraloutcome',]
+        target_models=[f'{app_label}.childtbreferraloutcome', ]
     )
 
     infant_hiv_testing = CrfRule(
