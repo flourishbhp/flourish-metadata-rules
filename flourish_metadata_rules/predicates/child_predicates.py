@@ -1,8 +1,9 @@
 from datetime import timedelta
+
 from django.apps import apps as django_apps
 from django.db.models import Q
 from edc_base.utils import age, get_utcnow
-from edc_constants.constants import FEMALE, IND, NO, OTHER, PENDING, POS, YES
+from edc_constants.constants import FEMALE, IND, NO, OTHER, POS, YES
 from edc_metadata_rules import PredicateCollection
 from edc_reference.models import Reference
 
@@ -521,7 +522,7 @@ class ChildPredicates(PredicateCollection):
             hiv_test_6wks_post_wean = self.infant_hiv_test_model_cls.objects.filter(
                 child_visit__subject_identifier=child_subject_identifier,
                 received_date__gte=infant_feeding_crf.dt_weaned +
-                timedelta(weeks=6)
+                                   timedelta(weeks=6)
             ).exists()
 
         child_age = self.get_child_age(visit=visit)
@@ -544,7 +545,7 @@ class ChildPredicates(PredicateCollection):
                 infant_feeding_crf, 'continuing_to_bf', None)
 
             return continuing_to_bf == YES or (continuing_to_bf == NO and not
-                                               hiv_test_6wks_post_wean)
+            hiv_test_6wks_post_wean)
 
         return False
 
@@ -598,23 +599,6 @@ class ChildPredicates(PredicateCollection):
 
         return previous_appt or appointment.previous_by_timepoint
 
-    def func_child_tb_screening_required(self, visit=None, **kwargs):
-        """Returns true if child tb screening is required
-        """
-        child_tb_scrining_model = f'{self.app_label}.childtbscreening'
-        child_tb_scrining_model_cls = django_apps.get_model(
-            child_tb_scrining_model)
-        latest_obj = child_tb_scrining_model_cls.objects.filter(
-            child_visit__subject_identifier=visit.subject_identifier
-        ).order_by('-report_datetime').first()
-        tests = ['chest_xray_results',
-                 'sputum_sample_results',
-                 'blood_test_results',
-                 'urine_test_results',
-                 'skin_test_results']
-        return any([getattr(latest_obj, field, None) == PENDING
-                    for field in tests]) if latest_obj else True
-
     def hiv_test_required(self, child_age, visit):
         try:
             infant_hiv_testing = self.infant_hiv_test_model_cls.objects.get(
@@ -665,18 +649,14 @@ class ChildPredicates(PredicateCollection):
         """
         child_tb_screening_model_cls = django_apps.get_model(
             f'{self.app_label}.childtbscreening')
-        latest_obj = child_tb_screening_model_cls.objects.filter(
-            child_visit__subject_identifier=visit.subject_identifier
-        ).order_by('-report_datetime').first()
-        if latest_obj:
-            return (
-                latest_obj.cough_duration == '≥ 2 weeks' or
-                latest_obj.fever == YES or
-                latest_obj.sweats == YES or
-                latest_obj.weight_loss == YES
-
+        try:
+            visit_obj = child_tb_screening_model_cls.objects.get(
+                child_visit=visit
             )
-        return False
+        except child_tb_screening_model_cls.DoesNotExist:
+            return False
+        else:
+            return visit_obj.tb_diagnoses
 
     def func_heu_status_disclosed(self, visit, **kwargs):
         child_subject_identifier = visit.subject_identifier
@@ -707,11 +687,11 @@ class ChildPredicates(PredicateCollection):
             pass
         else:
             return (
-                cage_obj.alcohol_drugs == YES or
-                cage_obj.cut_down == YES or
-                cage_obj.people_reaction == YES or
-                cage_obj.guilt == YES or
-                cage_obj.eye_opener == YES
+                    cage_obj.alcohol_drugs == YES or
+                    cage_obj.cut_down == YES or
+                    cage_obj.people_reaction == YES or
+                    cage_obj.guilt == YES or
+                    cage_obj.eye_opener == YES
 
             )
         return False
