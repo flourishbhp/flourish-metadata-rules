@@ -565,6 +565,37 @@ class CaregiverPredicates(PredicateCollection):
         return any([getattr(latest_obj, field, None) == PENDING
                     for field in tests]) if latest_obj else True
 
+    def func_caregiver_tb_referral_outcome(self, visit=None, **kwargs):
+        """Returns true if caregiver TB referral outcome crf is required
+        """
+        prev_caregiver_tb_referral_objs = Reference.objects.filter(
+            model=f'{self.app_label}.tbreferralcaregiver',
+            report_datetime__lt=visit.report_datetime,
+            identifier=visit.subject_identifier, )
+        prev_caregiver_tb_referral_outcome_objs = Reference.objects.filter(
+            model=f'{self.app_label}.caregivertbreferraloutcome',
+            report_datetime__lt=visit.report_datetime,
+            identifier=visit.subject_identifier, )
+
+        if prev_caregiver_tb_referral_objs.exists():
+            return prev_caregiver_tb_referral_objs.count() > \
+                prev_caregiver_tb_referral_outcome_objs.count()
+        return False
+
+    def func_caregiver_tb_referral_required(self, visit=None, **kwargs):
+        """Returns true if caregiver TB referral crf is required
+        """
+        caregiver_tb_screening_model_cls = django_apps.get_model(
+            f'{self.app_label}.caregivertbscreening')
+        try:
+            visit_obj = caregiver_tb_screening_model_cls.objects.get(
+                maternal_visit=visit
+            )
+        except caregiver_tb_screening_model_cls.DoesNotExist:
+            return False
+        else:
+            return visit_obj.tb_diagnoses
+
     def func_caregiver_social_work_referral_required(self, visit=None, **kwargs):
         """Returns true if caregiver Social _work referral crf is required
         """
@@ -626,38 +657,3 @@ class CaregiverPredicates(PredicateCollection):
                 return (birth_form_obj.feeding_mode == BREASTFEED_ONLY or
                         birth_form_obj.feeding_mode == 'Both breastfeeding and formula '
                                                        'feeding')
-
-    def func_caregiver_tb_referral_outcome(self, visit=None, **kwargs):
-        """Returns true if caregiver TB referral outcome crf is required
-        """
-        prev_caregiver_tb_referral_objs = Reference.objects.filter(
-            model=f'{self.app_label}.tbreferralcaregiver',
-            report_datetime__lt=visit.report_datetime,
-            identifier=visit.subject_identifier, )
-        prev_caregiver_tb_referral_outcome_objs = Reference.objects.filter(
-            model=f'{self.app_label}.caregivertbreferraloutcome',
-            report_datetime__lt=visit.report_datetime,
-            identifier=visit.subject_identifier, )
-
-        if prev_caregiver_tb_referral_objs.exists():
-            return prev_caregiver_tb_referral_objs.count() > \
-                prev_caregiver_tb_referral_outcome_objs.count()
-        return False
-
-    def func_caregiver_tb_referral_required(self, visit=None, **kwargs):
-        """Returns true if caregiver TB referral crf is required
-        """
-        caregiver_tb_screening_model_cls = django_apps.get_model(
-            f'{self.app_label}.caregivertbscreening')
-        latest_obj = caregiver_tb_screening_model_cls.objects.filter(
-            maternal_visit__subject_identifier=visit.subject_identifier
-        ).order_by('-report_datetime').first()
-        if latest_obj:
-            return (
-                    latest_obj.cough_duration == '≥ 2 weeks' or
-                    latest_obj.fever == YES or
-                    latest_obj.sweats == YES or
-                    latest_obj.weight_loss == YES
-
-            )
-        return False

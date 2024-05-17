@@ -2,6 +2,8 @@ from edc_metadata import NOT_REQUIRED, REQUIRED
 from edc_metadata_rules import CrfRule, CrfRuleGroup, register
 from edc_constants.constants import PARTICIPANT
 from edc_metadata_rules import P
+from edc_metadata import NOT_REQUIRED, REQUIRED
+from edc_metadata_rules import CrfRule, CrfRuleGroup, P, register
 
 from ...predicates import CaregiverPredicates
 
@@ -11,7 +13,6 @@ pc = CaregiverPredicates()
 
 @register()
 class MaternalVisitRuleGroup(CrfRuleGroup):
-
     clinician_notes = CrfRule(
         predicate=P('info_source', 'eq', PARTICIPANT),
         consequence=REQUIRED,
@@ -141,12 +142,18 @@ class MaternalVisitRuleGroup(CrfRuleGroup):
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.parentadolrelationshipscale', ])
-    
+
     caregiver_tb_screening = CrfRule(
         predicate=pc.func_caregiver_tb_screening,
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.caregivertbscreening', ])
+
+    caregiver_tb_referral_outcome = CrfRule(
+        predicate=pc.func_caregiver_tb_referral_outcome,
+        consequence=REQUIRED,
+        alternative=NOT_REQUIRED,
+        target_models=[f'{app_label}.caregivertbreferraloutcome', ])
 
     breast_milk_crf = CrfRule(
         predicate=pc.func_show_breast_milk_crf,
@@ -155,12 +162,6 @@ class MaternalVisitRuleGroup(CrfRuleGroup):
         target_models=[f'{app_label}.breastmilkbirth',
                        f'{app_label}.breastmilk6months'],
     )
-
-    caregiver_tb_referral_outcome = CrfRule(
-        predicate=pc.func_caregiver_tb_referral_outcome,
-        consequence=REQUIRED,
-        alternative=NOT_REQUIRED,
-        target_models=[f'{app_label}.caregivertbreferraloutcome', ])
 
     class Meta:
         app_label = app_label

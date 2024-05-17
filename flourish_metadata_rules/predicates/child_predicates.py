@@ -4,7 +4,7 @@ from dateutil.relativedelta import relativedelta
 from django.apps import apps as django_apps
 from django.db.models import Q
 from edc_base.utils import age, get_utcnow
-from edc_constants.constants import FEMALE, IND, NO, PENDING, POS, YES
+from edc_constants.constants import FEMALE, IND, NO,OTHER, PENDING, POS, YES
 from edc_metadata_rules import PredicateCollection
 from edc_reference.models import Reference
 
@@ -726,15 +726,49 @@ class ChildPredicates(PredicateCollection):
         """
         child_tb_screening_model_cls = django_apps.get_model(
             f'{self.app_label}.childtbscreening')
-        latest_obj = child_tb_screening_model_cls.objects.filter(
-            child_visit__subject_identifier=visit.subject_identifier
-        ).order_by('-report_datetime').first()
-        if latest_obj:
+        try:
+            visit_obj = child_tb_screening_model_cls.objects.get(
+                child_visit=visit
+            )
+        except child_tb_screening_model_cls.DoesNotExist:
+            return False
+        else:
+            return visit_obj.tb_diagnoses
+
+    def func_heu_status_disclosed(self, visit, **kwargs):
+        child_subject_identifier = visit.subject_identifier
+        is_biological = child_utils.is_bio_mother(child_subject_identifier)
+
+        disclosure_crfs = ['flourish_caregiver.hivdisclosurestatusa',
+                           'flourish_caregiver.hivdisclosurestatusb',
+                           'flourish_caregiver.hivdisclosurestatusc']
+
+        for crf in disclosure_crfs:
+            model_cls = django_apps.get_model(crf)
+            disclosed_status = model_cls.objects.filter(
+                associated_child_identifier=visit.subject_identifier,
+                disclosed_status=YES).exists()
+            if disclosed_status:
+                return is_biological and self.func_hiv_exposed(visit)
+
+    def func_child_social_work_referral_required(self, visit=None, **kwargs):
+        """Returns true if child Social _work referral crf is required
+        """
+        child_cage_aid_model_cls = django_apps.get_model(
+            f'{self.app_label}.childcageaid')
+        try:
+            cage_obj = child_cage_aid_model_cls.objects.get(
+                child_visit__subject_identifier=visit.subject_identifier
+            )
+        except child_cage_aid_model_cls.DoesNotExist:
+            pass
+        else:
             return (
-                    latest_obj.cough_duration == '≥ 2 weeks' or
-                    latest_obj.fever == YES or
-                    latest_obj.sweats == YES or
-                    latest_obj.weight_loss == YES
+                    cage_obj.alcohol_drugs == YES or
+                    cage_obj.cut_down == YES or
+                    cage_obj.people_reaction == YES or
+                    cage_obj.guilt == YES or
+                    cage_obj.eye_opener == YES
 
             )
         return False
