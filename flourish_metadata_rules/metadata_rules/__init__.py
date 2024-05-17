@@ -1,3 +1,4 @@
+from .caregiver_rule_groups import BreastMilkBirthReqRuleGroup
 from .caregiver_rule_groups import EdinburgDeprScreeningRuleGroup
 from .caregiver_rule_groups import EdinburgReferralRuleGroup
 from .caregiver_rule_groups import GAD7AnxietyScreeningRuleGroup
