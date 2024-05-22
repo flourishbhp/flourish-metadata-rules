@@ -1,4 +1,5 @@
 from datetime import date
+import re
 
 from dateutil import relativedelta
 from django.apps import apps as django_apps
@@ -154,6 +155,37 @@ class CaregiverPredicates(PredicateCollection):
     def func_child_age_gte10(self, visit, **kwargs):
         child_age = self.func_child_age(visit=visit, **kwargs)
         return child_age.years >= 10 if child_age else False
+    
+
+    def func_gt10_and_after_a_year(self, visit, **kwargs):
+        # return child_age.years >= 10 if child_age else False
+        relationship_scale_cls = django_apps.get_model('flourish_caregiver.parentadolrelationshipscale')
+        is_gte_10 = self.func_child_age_gte10(visit, **kwargs)
+
+        relationship_scale_objs = relationship_scale_cls.objects.filter(
+            maternal_visit__subject_identifier = visit.subject_identifier)
+        
+        result = False
+
+        #show crf if it doesn't exist at all
+        if not relationship_scale_objs.exists():
+            result = is_gte_10
+        else:
+            # show again after 4 visits from the latest 
+            relationship_scale_obj = relationship_scale_objs.latest('report_datetime')
+            visit_code = relationship_scale_obj.visit_code
+
+            calculated_visit_code = int(re.search(r'\d+', visit_code).group())+4
+            
+            next_visit_code = f'{calculated_visit_code}{visit_code[-1]}'
+
+            result =  next_visit_code==visit.visit_code and is_gte_10
+
+        return result
+            
+        
+
+
 
     def prior_participation(self, visit=None, **kwargs):
         maternal_dataset_model = django_apps.get_model(
