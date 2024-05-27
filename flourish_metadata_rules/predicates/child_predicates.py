@@ -609,7 +609,7 @@ class ChildPredicates(PredicateCollection):
             return child_age in [i.short_name for i in
                                  infant_hiv_testing.test_visit.all()]
 
-    def func_restults_on_unscheduel(self, visit, model):
+    def func_results_on_unscheduled(self, visit, model):
         model_cls = django_apps.get_model(model)
         if visit.appointment.visit_code_sequence > 0:
             previous_appt = visit.appointment.__class__.objects.get(
