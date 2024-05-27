@@ -3,7 +3,6 @@ from dateutil.relativedelta import relativedelta
 
 from django.apps import apps as django_apps
 from django.db.models import Q
-from edc_appointment.constants import UNSCHEDULED_APPT
 from edc_base.utils import age, get_utcnow
 from edc_constants.constants import FEMALE, IND, NO, OTHER, PENDING, POS, YES
 from edc_metadata_rules import PredicateCollection
@@ -647,10 +646,11 @@ class ChildPredicates(PredicateCollection):
 
     def func_restults_on_unscheduel(self, visit, model):
         model_cls = django_apps.get_model(model)
-        if visit.appointment.appt_reason == UNSCHEDULED_APPT:
-
-            previous_appt = self.get_previous_appt_instance(visit.appointment)
-
+        if visit.appointment.visit_code_sequence > 0:
+            previous_appt = visit.appointment.__class__.objects.get(
+                subject_identifier=visit.appointment.subject_identifier,
+                visit_code=visit.visit_code,
+                visit_code_sequence=visit.appointment.visit_code_sequence - 1)
             try:
                 prev_obj = model_cls.objects.get(child_visit__appointment=previous_appt)
             except model_cls.DoesNotExist:
