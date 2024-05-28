@@ -134,7 +134,9 @@ class ChildPredicates(PredicateCollection):
         consent_objs = caregiver_child_consent_cls.objects.filter(
             subject_identifier=visit.subject_identifier, ).exclude(
             Q(version='1') | Q(version='2'))
-        return visit.visit_code == '2000D' and visit.visit_code_sequence == 0 and \
+
+        visit_codes = ['2000D', '2002S']
+        return visit.visit_code in visit_codes and visit.visit_code_sequence == 0 and \
             consent_objs.exists()
 
     def get_child_age(self, visit=None, **kwargs):
@@ -591,49 +593,6 @@ class ChildPredicates(PredicateCollection):
 
         return previous_appt or appointment.previous_by_timepoint
 
-    def func_child_tb_screening_required(self, visit=None, **kwargs):
-        """Returns true if child tb screening is required
-        """
-        child_tb_scrining_model = f'{self.app_label}.childtbscreening'
-        child_tb_scrining_model_cls = django_apps.get_model(
-            child_tb_scrining_model)
-        latest_obj = child_tb_scrining_model_cls.objects.filter(
-            child_visit__subject_identifier=visit.subject_identifier
-        ).order_by('-report_datetime').first()
-        tests = ['chest_xray_results',
-                 'sputum_sample_results',
-                 'blood_test_results',
-                 'urine_test_results',
-                 'skin_test_results']
-        return any([getattr(latest_obj, field, None) == PENDING
-                    for field in tests]) if latest_obj else True
-
-    def func_heu_status_disclosed(self, visit, **kwargs):
-        child_subject_identifier = visit.subject_identifier
-        is_biological = child_utils.is_bio_mother(child_subject_identifier)
-
-        disclosure_crfs = ['flourish_caregiver.hivdisclosurestatusa',
-                           'flourish_caregiver.hivdisclosurestatusb',
-                           'flourish_caregiver.hivdisclosurestatusc']
-
-        for crf in disclosure_crfs:
-            model_cls = django_apps.get_model(crf)
-            disclosed_status = model_cls.objects.filter(
-                associated_child_identifier=visit.subject_identifier,
-                disclosed_status=YES).exists()
-            if disclosed_status:
-                return is_biological and self.func_hiv_exposed(visit)
-
-    def hiv_test_birth_required(self, visit=None, **kwargs):
-        try:
-            infant_hiv_testing = self.infant_hiv_test_model_cls.objects.get(
-                child_visit=visit)
-        except self.infant_hiv_test_model_cls.DoesNotExist:
-            return False
-        else:
-            return 'birth' in [i.short_name for i in
-                               infant_hiv_testing.test_visit.all()]
-
     def hiv_test_required(self, child_age, visit):
         try:
             infant_hiv_testing = self.infant_hiv_test_model_cls.objects.get(
@@ -664,29 +623,29 @@ class ChildPredicates(PredicateCollection):
     def hiv_test_birth_required(self, visit=None, **kwargs):
         model = 'flourish_child.infanthivtestingbirth'
         return (self.hiv_test_required('birth', visit) or
-                self.func_restults_on_unscheduel(model=model, visit=visit))
+                self.func_results_on_unscheduled(model=model, visit=visit))
 
     def hiv_test_other_required(self, visit=None, **kwargs):
         model = 'flourish_child.infanthivtestingother'
         return (self.hiv_test_required(OTHER, visit) or
-                self.func_restults_on_unscheduel(model=model, visit=visit))
+                self.func_results_on_unscheduled(model=model, visit=visit))
 
     def hiv_test_18_months_required(self, visit=None, **kwargs):
         model = 'flourish_child.infanthivtesting18months'
         return (self.hiv_test_required('18_months', visit) or
-                self.func_restults_on_unscheduel(model=model, visit=visit))
+                self.func_results_on_unscheduled(model=model, visit=visit))
 
     def hiv_test_after_breastfeeding_required(self, visit=None, **kwargs):
         model = 'flourish_child.infanthivtestingafterbreastfeeding'
         return (self.hiv_test_required('after_breastfeeding', visit) or
-                self.func_restults_on_unscheduel(model=model, visit=visit))
+                self.func_results_on_unscheduled(model=model, visit=visit))
 
     def hiv_test_6_to_8_weeks_required(self, visit=None, **kwargs):
         model = 'flourish_child.infanthivtestingage6to8weeks'
         return (self.hiv_test_required('6_to_8_weeks', visit) or
-                self.func_restults_on_unscheduel(model=model, visit=visit))
+                self.func_results_on_unscheduled(model=model, visit=visit))
 
     def hiv_test_9_months_required(self, visit=None, **kwargs):
         model = 'flourish_child.infanthivtestingage6to8weeks'
         return (self.hiv_test_required('9_months', visit) or
-                self.func_restults_on_unscheduel(model=model, visit=visit))
+                self.func_results_on_unscheduled(model=model, visit=visit))
