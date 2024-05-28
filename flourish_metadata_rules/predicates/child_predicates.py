@@ -695,3 +695,10 @@ class ChildPredicates(PredicateCollection):
 
             )
         return False
+
+    def func_childhood_lead_exposure_risk_required(self, visit=None, **kwargs):
+        childhood_lead_exposure_risk_model = f'{self.app_label}.childhoodleadexposurerisk'
+        prev_instance = self.previous_model(visit=visit,
+                                            model=childhood_lead_exposure_risk_model)
+        is_follow_up = '_fu_' in visit.schedule_name
+        return True if not prev_instance and is_follow_up else False
