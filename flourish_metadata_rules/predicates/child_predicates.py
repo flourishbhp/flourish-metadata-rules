@@ -629,32 +629,32 @@ class ChildPredicates(PredicateCollection):
     def hiv_test_birth_required(self, visit=None, **kwargs):
         model = 'flourish_child.infanthivtestingbirth'
         return (self.hiv_test_required('birth', visit) or
-                self.func_restults_on_unscheduel(model=model, visit=visit))
+                self.func_results_on_unscheduled(model=model, visit=visit))
 
     def hiv_test_other_required(self, visit=None, **kwargs):
         model = 'flourish_child.infanthivtestingother'
         return (self.hiv_test_required(OTHER, visit) or
-                self.func_restults_on_unscheduel(model=model, visit=visit))
+                self.func_results_on_unscheduled(model=model, visit=visit))
 
     def hiv_test_18_months_required(self, visit=None, **kwargs):
         model = 'flourish_child.infanthivtesting18months'
         return (self.hiv_test_required('18_months', visit) or
-                self.func_restults_on_unscheduel(model=model, visit=visit))
+                self.func_results_on_unscheduled(model=model, visit=visit))
 
     def hiv_test_after_breastfeeding_required(self, visit=None, **kwargs):
         model = 'flourish_child.infanthivtestingafterbreastfeeding'
         return (self.hiv_test_required('after_breastfeeding', visit) or
-                self.func_restults_on_unscheduel(model=model, visit=visit))
+                self.func_results_on_unscheduled(model=model, visit=visit))
 
     def hiv_test_6_to_8_weeks_required(self, visit=None, **kwargs):
         model = 'flourish_child.infanthivtestingage6to8weeks'
         return (self.hiv_test_required('6_to_8_weeks', visit) or
-                self.func_restults_on_unscheduel(model=model, visit=visit))
+                self.func_results_on_unscheduled(model=model, visit=visit))
 
     def hiv_test_9_months_required(self, visit=None, **kwargs):
         model = 'flourish_child.infanthivtestingage6to8weeks'
         return (self.hiv_test_required('9_months', visit) or
-                self.func_restults_on_unscheduel(model=model, visit=visit))
+                self.func_results_on_unscheduled(model=model, visit=visit))
 
     def func_child_tb_referral_outcome(self, visit=None, **kwargs):
         """Returns true if caregiver TB referral outcome crf is required
