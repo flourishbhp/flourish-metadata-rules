@@ -4,6 +4,7 @@ from dateutil import relativedelta
 from django.apps import apps as django_apps
 from edc_base.utils import age, get_utcnow
 from edc_constants.constants import IND, NEG, PENDING, POS, UNK, YES
+from flourish_caregiver.constants import BREASTFEED_ONLY
 from edc_metadata_rules import PredicateCollection
 from edc_reference.models import Reference
 from flourish_caregiver.choices import BREASTFEED_ONLY
@@ -461,7 +462,7 @@ class CaregiverPredicates(PredicateCollection):
         """Returns true if women LWHIV and enrolment visit i.e. (1000M or 2000M)
         """
         hiv_pos = self.func_hiv_positive(visit)
-        is_bio_caregiver = 'B' in visit.subject_identifier
+        is_bio_caregiver = self.func_bio_mother(visit=visit)
         return visit.visit_code in ['1000M', '2000M'] and hiv_pos and is_bio_caregiver
 
     def func_interview_focus_group_interest(self, visit=None, **kwargs):
