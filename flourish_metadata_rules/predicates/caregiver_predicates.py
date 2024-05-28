@@ -1,5 +1,4 @@
 from datetime import date
-import re
 
 from dateutil import relativedelta
 from django.apps import apps as django_apps
