@@ -149,6 +149,13 @@ class ChildVisitRuleGroup(CrfRuleGroup):
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.childsafistigma', ])
 
+    childhood_lead_exposure_risk = CrfRule(
+        predicate=pc.func_childhood_lead_exposure_risk_required,
+        consequence=REQUIRED,
+        alternative=NOT_REQUIRED,
+        target_models=[f'{app_label}.childhoodleadexposurerisk', ]
+    )
+
     class Meta:
         app_label = app_label
         source_model = f'{app_label}.childvisit'
