@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+import pytz
 from django.apps import apps as django_apps
 from django.db.models import Q
 from edc_base.utils import age, get_utcnow
@@ -732,7 +733,11 @@ class ChildPredicates(PredicateCollection):
         is_follow_up = '_fu_' in visit.schedule_name
 
         if prev_instance:
-            return (visit.appointment.appt_datetime -
-                    prev_instance.report_datetime) > timedelta(days=365)
+            visit_definition = visit.appointment.visits.get(visit.appointment.visit_code)
+            earlist_appt_date = (visit.appointment.timepoint_datetime -
+                                 visit_definition.rlower).astimezone(
+                pytz.timezone('Africa/Gaborone'))
+            return (earlist_appt_date - prev_instance.report_datetime) > timedelta(
+                days=365)
         else:
             return is_follow_up
