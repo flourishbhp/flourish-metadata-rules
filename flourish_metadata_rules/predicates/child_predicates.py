@@ -730,4 +730,9 @@ class ChildPredicates(PredicateCollection):
         prev_instance = self.previous_model(visit=visit,
                                             model=childhood_lead_exposure_risk_model)
         is_follow_up = '_fu_' in visit.schedule_name
-        return True if not prev_instance and is_follow_up else False
+
+        if prev_instance:
+            return (visit.appointment.appt_datetime -
+                    prev_instance.report_datetime) > timedelta(days=365)
+        else:
+            return is_follow_up
