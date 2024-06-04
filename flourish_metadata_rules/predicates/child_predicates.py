@@ -688,7 +688,7 @@ class ChildPredicates(PredicateCollection):
         childhood_lead_exposure_risk_model = f'{self.app_label}.childhoodleadexposurerisk'
         prev_instance = self.previous_model(visit=visit,
                                             model=childhood_lead_exposure_risk_model)
-        is_follow_up = '_fu_' in visit.schedule_name
+        is_follow_up = '300' in visit.visit_code
 
         if prev_instance:
             visit_definition = visit.appointment.visits.get(visit.appointment.visit_code)
