@@ -646,6 +646,6 @@ class ChildPredicates(PredicateCollection):
                 self.func_results_on_unscheduled(model=model, visit=visit))
 
     def hiv_test_9_months_required(self, visit=None, **kwargs):
-        model = 'flourish_child.infanthivtestingage6to8weeks'
+        model = 'flourish_child.infanthivtesting9months'
         return (self.hiv_test_required('9_months', visit) or
                 self.func_results_on_unscheduled(model=model, visit=visit))
