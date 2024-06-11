@@ -593,6 +593,39 @@ class ChildPredicates(PredicateCollection):
 
         return previous_appt or appointment.previous_by_timepoint
 
+    def func_child_tb_screening_required(self, visit=None, **kwargs):
+        """Returns true if child tb screening is required
+        """
+        child_tb_scrining_model = f'{self.app_label}.childtbscreening'
+        child_tb_scrining_model_cls = django_apps.get_model(
+            child_tb_scrining_model)
+        latest_obj = child_tb_scrining_model_cls.objects.filter(
+            child_visit__subject_identifier=visit.subject_identifier
+        ).order_by('-report_datetime').first()
+        tests = ['chest_xray_results',
+                 'sputum_sample_results',
+                 'blood_test_results',
+                 'urine_test_results',
+                 'skin_test_results']
+        return any([getattr(latest_obj, field, None) == PENDING
+                    for field in tests]) if latest_obj else True
+
+    def func_heu_status_disclosed(self, visit, **kwargs):
+        child_subject_identifier = visit.subject_identifier
+        is_biological = child_utils.is_bio_mother(child_subject_identifier)
+
+        disclosure_crfs = ['flourish_caregiver.hivdisclosurestatusa',
+                           'flourish_caregiver.hivdisclosurestatusb',
+                           'flourish_caregiver.hivdisclosurestatusc']
+
+        for crf in disclosure_crfs:
+            model_cls = django_apps.get_model(crf)
+            disclosed_status = model_cls.objects.filter(
+                associated_child_identifier=visit.subject_identifier,
+                disclosed_status=YES).exists()
+            if disclosed_status:
+                return is_biological and self.func_hiv_exposed(visit)
+
     def hiv_test_required(self, child_age, visit):
         try:
             infant_hiv_testing = self.infant_hiv_test_model_cls.objects.get(
