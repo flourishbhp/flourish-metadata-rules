@@ -136,6 +136,12 @@ class MaternalVisitRuleGroup(CrfRuleGroup):
         target_models=[f'{app_label}.maternalarvadherence']
     )
 
+    parent_adol_crf = CrfRule(
+        predicate=pc.func_gt10_and_after_a_year,
+        consequence=REQUIRED,
+        alternative=NOT_REQUIRED,
+        target_models=[f'{app_label}.parentadolrelationshipscale', ])
+    
     caregiver_tb_screening = CrfRule(
         predicate=pc.func_caregiver_tb_screening,
         consequence=REQUIRED,
