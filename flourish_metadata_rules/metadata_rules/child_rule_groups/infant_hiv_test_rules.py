@@ -35,6 +35,8 @@ class InfantHIVTestRuleGroup(CrfRuleGroup):
 
     hiv_testing_6to8_months = CrfRule(
         predicate=pc.hiv_test_6_to_8_weeks_required,
+    birth_hiv_testing = CrfRule(
+        predicate=pc.hiv_test_birth_required,
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.infanthivtestingage6to8weeks', ])

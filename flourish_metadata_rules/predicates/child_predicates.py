@@ -1,6 +1,8 @@
 from datetime import timedelta
 
 import pytz
+from dateutil.relativedelta import relativedelta
+
 from django.apps import apps as django_apps
 from django.db.models import Q
 from edc_base.utils import age, get_utcnow
@@ -741,3 +743,60 @@ class ChildPredicates(PredicateCollection):
                 days=365)
         else:
             return is_follow_up
+
+    def hiv_test_required(self, child_age, visit):
+        try:
+            infant_hiv_testing = self.infant_hiv_test_model_cls.objects.get(
+                child_visit=visit)
+        except self.infant_hiv_test_model_cls.DoesNotExist:
+            return False
+        else:
+            return child_age in [i.short_name for i in
+                                 infant_hiv_testing.test_visit.all()]
+
+    def func_results_on_unscheduled(self, visit, model):
+        model_cls = django_apps.get_model(model)
+        if visit.appointment.visit_code_sequence > 0:
+            previous_appt = visit.appointment.__class__.objects.get(
+                subject_identifier=visit.appointment.subject_identifier,
+                visit_code=visit.visit_code,
+                visit_code_sequence=visit.appointment.visit_code_sequence - 1)
+            try:
+                prev_obj = model_cls.objects.get(child_visit__appointment=previous_appt)
+            except model_cls.DoesNotExist:
+                return False
+            else:
+                no_results = [IND, PENDING, UNKNOWN]
+                return prev_obj.hiv_test_result in no_results
+        else:
+            return False
+
+    def hiv_test_birth_required(self, visit=None, **kwargs):
+        model = 'flourish_child.infanthivtestingbirth'
+        return (self.hiv_test_required('birth', visit) or
+                self.func_results_on_unscheduled(model=model, visit=visit))
+
+    def hiv_test_other_required(self, visit=None, **kwargs):
+        model = 'flourish_child.infanthivtestingother'
+        return (self.hiv_test_required(OTHER, visit) or
+                self.func_results_on_unscheduled(model=model, visit=visit))
+
+    def hiv_test_18_months_required(self, visit=None, **kwargs):
+        model = 'flourish_child.infanthivtesting18months'
+        return (self.hiv_test_required('18_months', visit) or
+                self.func_results_on_unscheduled(model=model, visit=visit))
+
+    def hiv_test_after_breastfeeding_required(self, visit=None, **kwargs):
+        model = 'flourish_child.infanthivtestingafterbreastfeeding'
+        return (self.hiv_test_required('after_breastfeeding', visit) or
+                self.func_results_on_unscheduled(model=model, visit=visit))
+
+    def hiv_test_6_to_8_weeks_required(self, visit=None, **kwargs):
+        model = 'flourish_child.infanthivtestingage6to8weeks'
+        return (self.hiv_test_required('6_to_8_weeks', visit) or
+                self.func_results_on_unscheduled(model=model, visit=visit))
+
+    def hiv_test_9_months_required(self, visit=None, **kwargs):
+        model = 'flourish_child.infanthivtesting9months'
+        return (self.hiv_test_required('9_months', visit) or
+                self.func_results_on_unscheduled(model=model, visit=visit))
