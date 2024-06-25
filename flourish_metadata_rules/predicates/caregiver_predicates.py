@@ -1,14 +1,15 @@
-from datetime import date
 import re
-from flourish_caregiver.constants import BREASTFEED_ONLY
+from datetime import date, timedelta
 
+import pytz
 from dateutil import relativedelta
 from django.apps import apps as django_apps
 from edc_base.utils import age, get_utcnow
-from edc_constants.constants import IND, NEG, PENDING, POS, UNK, YES
+from edc_constants.constants import IND, NEG, POS, UNK, YES
 from edc_metadata_rules import PredicateCollection
 from edc_reference.models import Reference
 
+from flourish_caregiver.constants import BREASTFEED_ONLY
 from flourish_caregiver.helper_classes import MaternalStatusHelper
 from flourish_caregiver.helper_classes.utils import get_child_subject_identifier_by_visit
 
@@ -177,13 +178,14 @@ class CaregiverPredicates(PredicateCollection):
             visit_code = relationship_scale_obj.visit_code
 
             calculated_visit_code = int(
-                re.search(r'\d+', visit_code).group())+4
+                re.search(r'\d+', visit_code).group()) + 4
 
             next_visit_code = f'{calculated_visit_code}{visit_code[-1]}'
 
             result = next_visit_code == visit.visit_code and is_gte_10
 
         return result
+
     def prior_participation(self, visit=None, **kwargs):
         maternal_dataset_model = django_apps.get_model(
             f'{self.app_label}.maternaldataset')
@@ -596,11 +598,11 @@ class CaregiverPredicates(PredicateCollection):
             pass
         else:
             return (
-                cage_obj.alcohol_drugs == YES or
-                cage_obj.cut_down == YES or
-                cage_obj.people_reaction == YES or
-                cage_obj.guilt == YES or
-                cage_obj.eye_opener == YES
+                    cage_obj.alcohol_drugs == YES or
+                    cage_obj.cut_down == YES or
+                    cage_obj.people_reaction == YES or
+                    cage_obj.guilt == YES or
+                    cage_obj.eye_opener == YES
 
             )
         return False
@@ -644,3 +646,28 @@ class CaregiverPredicates(PredicateCollection):
                 return (birth_form_obj.feeding_mode == BREASTFEED_ONLY or
                         birth_form_obj.feeding_mode == 'Both breastfeeding and formula '
                                                        'feeding')
+
+    def func_childhood_lead_exposure_risk_required(self, visit=None, **kwargs):
+        childhood_lead_exposure_risk_model = f'{self.app_label}.childhoodleadexposurerisk'
+        prev_instance = Reference.objects.filter(
+            model=childhood_lead_exposure_risk_model,
+            identifier=visit.appointment.subject_identifier,
+            report_datetime__lt=visit.report_datetime).order_by(
+            '-report_datetime').first()
+
+        is_follow_up = '300' in visit.visit_code
+        child_age = self.func_child_age(visit=visit, **kwargs)
+
+        child_age = child_age.years + (child_age.months / 12)
+        if not 1 < child_age < 6:
+            return False
+
+        if prev_instance:
+            visit_definition = visit.appointment.visits.get(visit.appointment.visit_code)
+            earlist_appt_date = (visit.appointment.timepoint_datetime -
+                                 visit_definition.rlower).astimezone(
+                pytz.timezone('Africa/Gaborone'))
+            return (earlist_appt_date - prev_instance.report_datetime) > timedelta(
+                days=365)
+        else:
+            return is_follow_up
