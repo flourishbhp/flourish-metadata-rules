@@ -5,7 +5,7 @@ import pytz
 from dateutil import relativedelta
 from django.apps import apps as django_apps
 from edc_base.utils import age, get_utcnow
-from edc_constants.constants import IND, NEG, POS, UNK, YES
+from edc_constants.constants import IND, NEG, PENDING, POS, UNK, YES
 from edc_metadata_rules import PredicateCollection
 from edc_reference.models import Reference
 
@@ -179,7 +179,8 @@ class CaregiverPredicates(PredicateCollection):
                 'report_datetime')
             visit_code = relationship_scale_obj.visit_code
 
-            calculated_visit_code = int(re.search(r'\d+', visit_code).group()) + 4
+            calculated_visit_code = int(
+                re.search(r'\d+', visit_code).group()) + 4
 
             next_visit_code = f'{calculated_visit_code}{visit_code[-1]}'
 
