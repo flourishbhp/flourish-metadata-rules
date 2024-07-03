@@ -1,5 +1,5 @@
-from datetime import date
 import re
+from datetime import date
 
 from dateutil import relativedelta
 from django.apps import apps as django_apps
@@ -80,7 +80,7 @@ class CaregiverPredicates(PredicateCollection):
             return False
         else:
             return True
-
+        
     def child_gt10(self, visit):
 
         onschedule_model = django_apps.get_model(
