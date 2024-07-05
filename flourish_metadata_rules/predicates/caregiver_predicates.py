@@ -6,7 +6,7 @@ from dateutil import relativedelta
 from django.apps import apps as django_apps
 from django.db.models import Q
 from edc_base.utils import age, get_utcnow
-from edc_constants.constants import IND, NEG, POS, UNK, YES
+from edc_constants.constants import IND, NEG, PENDING, POS, UNK, YES
 from edc_metadata_rules import PredicateCollection
 from edc_reference.models import Reference
 
@@ -25,11 +25,6 @@ class CaregiverPredicates(PredicateCollection):
     app_label = 'flourish_caregiver'
     pre_app_label = 'pre_flourish'
     visit_model = f'{app_label}.maternalvisit'
-
-    @staticmethod
-    def get_model(model_name):
-        """Get model class by given name."""
-        return django_apps.get_model(model_name)
 
     def func_hiv_positive(self, visit=None, **kwargs):
         """
@@ -164,7 +159,6 @@ class CaregiverPredicates(PredicateCollection):
 
             calculated_visit_code = int(
                 re.search(r'\d+', visit_code).group()) + 4
-
             next_visit_code = f'{calculated_visit_code}{visit_code[-1]}'
 
             result = next_visit_code == visit.visit_code and is_gte_10
@@ -431,8 +425,8 @@ class CaregiverPredicates(PredicateCollection):
                             child_age = age(
                                 child_consent.child_dob, get_utcnow())
                             child_age_in_months = ((
-                                                           child_age.years * 12) +
-                                                   child_age.months)
+                                child_age.years * 12) +
+                                child_age.months)
                             if child_age_in_months < 2:
                                 try:
                                     last_tb_bj = tb_screening_form_objs.latest(
@@ -461,13 +455,13 @@ class CaregiverPredicates(PredicateCollection):
             return False
         else:
             take_off_schedule = (
-                    visit_screening.have_cough == YES or
-                    visit_screening.cough_duration == '=>2 week' or
-                    visit_screening.fever == YES or
-                    visit_screening.night_sweats == YES or
-                    visit_screening.weight_loss == YES or
-                    visit_screening.cough_blood == YES or
-                    visit_screening.enlarged_lymph_nodes == YES
+                visit_screening.have_cough == YES or
+                visit_screening.cough_duration == '=>2 week' or
+                visit_screening.fever == YES or
+                visit_screening.night_sweats == YES or
+                visit_screening.weight_loss == YES or
+                visit_screening.cough_blood == YES or
+                visit_screening.enlarged_lymph_nodes == YES
             )
             return take_off_schedule
 

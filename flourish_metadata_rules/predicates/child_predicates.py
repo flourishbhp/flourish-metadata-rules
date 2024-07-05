@@ -1,10 +1,11 @@
 from datetime import timedelta
+from dateutil.relativedelta import relativedelta
 
 import pytz
 from django.apps import apps as django_apps
 from django.db.models import Q
 from edc_base.utils import age, get_utcnow
-from edc_constants.constants import FEMALE, IND, NO, OTHER, PENDING, POS, UNKNOWN, YES
+from edc_constants.constants import FEMALE, IND, NO, OTHER, PENDING, POS, YES
 from edc_metadata_rules import PredicateCollection
 from edc_reference.models import Reference
 
@@ -345,12 +346,6 @@ class ChildPredicates(PredicateCollection):
         child_age = self.get_child_age(visit=visit)
         return child_age.years >= 11 if child_age else False
 
-    def func_15_years_older(self, visit=None, **kwargs):
-        """Returns true if participant is 15 years or older
-        """
-        child_age = self.get_child_age(visit=visit)
-        return child_age.years >= 15 if child_age else False
-
     def func_12_years_older_female(self, visit=None, **kwargs):
         """Returns true if participant is 12 years or older
         """
@@ -530,8 +525,7 @@ class ChildPredicates(PredicateCollection):
 
         child_age_in_months = (child_age.years * 12) + child_age.months
 
-        hiv_status = self.get_latest_maternal_hiv_status(
-            visit=visit).hiv_status
+        hiv_status = self.get_latest_maternal_hiv_status(visit=visit).hiv_status
 
         if (hiv_status == POS and self.func_consent_study_pregnant(visit=visit)):
             if (self.newly_enrolled(visit=visit)
