@@ -1,8 +1,10 @@
 import re
-from datetime import date
+from datetime import date, timedelta
 
+import pytz
 from dateutil import relativedelta
 from django.apps import apps as django_apps
+from django.db.models import Q
 from edc_base.utils import age, get_utcnow
 from edc_constants.constants import IND, NEG, PENDING, POS, UNK, YES
 from edc_metadata_rules import PredicateCollection
@@ -80,7 +82,7 @@ class CaregiverPredicates(PredicateCollection):
             return False
         else:
             return True
-        
+
     def child_gt10(self, visit):
 
         onschedule_model = django_apps.get_model(
@@ -118,7 +120,7 @@ class CaregiverPredicates(PredicateCollection):
                     if (child_age <= 15.9 and child_age >= 10):
                         return [True, child_subject_identifier]
         return [False, child_subject_identifier]
-    
+
     def func_child_age(self, visit=None, **kwargs):
         onschedule_model = django_apps.get_model(
             visit.appointment.schedule.onschedule_model)
@@ -155,33 +157,35 @@ class CaregiverPredicates(PredicateCollection):
     def func_child_age_gte10(self, visit, **kwargs):
         child_age = self.func_child_age(visit=visit, **kwargs)
         return child_age.years >= 10 if child_age else False
-    
+
     def func_gt10_and_after_a_year(self, visit, **kwargs):
         # return child_age.years >= 10 if child_age else False
-        relationship_scale_cls = django_apps.get_model('flourish_caregiver.parentadolrelationshipscale')
+        relationship_scale_cls = django_apps.get_model(
+            'flourish_caregiver.parentadolrelationshipscale')
         is_gte_10 = self.func_child_age_gte10(visit, **kwargs)
 
         relationship_scale_objs = relationship_scale_cls.objects.filter(
-            maternal_visit__subject_identifier = visit.subject_identifier)
-        
+            maternal_visit__subject_identifier=visit.subject_identifier)
+
         result = False
 
-        #show crf if it doesn't exist at all
+        # show crf if it doesn't exist at all
         if not relationship_scale_objs.exists():
             result = is_gte_10
         else:
-            # show again after 4 visits from the latest 
-            relationship_scale_obj = relationship_scale_objs.latest('report_datetime')
+            # show again after 4 visits from the latest
+            relationship_scale_obj = relationship_scale_objs.latest(
+                'report_datetime')
             visit_code = relationship_scale_obj.visit_code
 
-            calculated_visit_code = int(re.search(r'\d+', visit_code).group())+4
-            
+            calculated_visit_code = int(re.search(r'\d+', visit_code).group()) + 4
+
             next_visit_code = f'{calculated_visit_code}{visit_code[-1]}'
 
-            result =  next_visit_code==visit.visit_code and is_gte_10
+            result = next_visit_code == visit.visit_code and is_gte_10
 
         return result
-        
+
     def prior_participation(self, visit=None, **kwargs):
         maternal_dataset_model = django_apps.get_model(
             f'{self.app_label}.maternaldataset')
@@ -442,8 +446,8 @@ class CaregiverPredicates(PredicateCollection):
                             child_age = age(
                                 child_consent.child_dob, get_utcnow())
                             child_age_in_months = ((
-                                child_age.years * 12) +
-                                child_age.months)
+                                                           child_age.years * 12) +
+                                                   child_age.months)
                             if child_age_in_months < 2:
                                 try:
                                     last_tb_bj = tb_screening_form_objs.latest(
@@ -472,13 +476,13 @@ class CaregiverPredicates(PredicateCollection):
             return False
         else:
             take_off_schedule = (
-                visit_screening.have_cough == YES or
-                visit_screening.cough_duration == '=>2 week' or
-                visit_screening.fever == YES or
-                visit_screening.night_sweats == YES or
-                visit_screening.weight_loss == YES or
-                visit_screening.cough_blood == YES or
-                visit_screening.enlarged_lymph_nodes == YES
+                    visit_screening.have_cough == YES or
+                    visit_screening.cough_duration == '=>2 week' or
+                    visit_screening.fever == YES or
+                    visit_screening.night_sweats == YES or
+                    visit_screening.weight_loss == YES or
+                    visit_screening.cough_blood == YES or
+                    visit_screening.enlarged_lymph_nodes == YES
             )
             return take_off_schedule
 
@@ -579,17 +583,17 @@ class CaregiverPredicates(PredicateCollection):
             pass
         else:
             return (
-                cage_obj.alcohol_drugs == YES or
-                cage_obj.cut_down == YES or
-                cage_obj.people_reaction == YES or
-                cage_obj.guilt == YES or
-                cage_obj.eye_opener == YES
+                    cage_obj.alcohol_drugs == YES or
+                    cage_obj.cut_down == YES or
+                    cage_obj.people_reaction == YES or
+                    cage_obj.guilt == YES or
+                    cage_obj.eye_opener == YES
 
             )
         return False
 
     def func_counselling_referral(self, visit=None, **kwargs):
-        """Returns true if couselling_referral is yes 
+        """Returns true if counselling_referral is yes
         """
         relationship_with_father_cls = django_apps.get_model(
             f'{self.app_label}.relationshipfatherinvolvement')
@@ -605,7 +609,8 @@ class CaregiverPredicates(PredicateCollection):
     def func_caregiver_social_work_referral_required_relation(self, visit=None, **kwargs):
         """Returns true if caregiver Social _work referral crf is required
         """
-        return self.func_caregiver_social_work_referral_required(visit=visit) or self.func_counselling_referral(visit=visit)
+        return (self.func_caregiver_social_work_referral_required(visit=visit) or
+                self.func_counselling_referral(visit=visit))
 
     def func_show_breast_milk_crf(self, visit=None, **kwargs):
         """ Returns true if participant is breastfeeding of breastfeeding and formula
@@ -626,3 +631,72 @@ class CaregiverPredicates(PredicateCollection):
                 return (birth_form_obj.feeding_mode == BREASTFEED_ONLY or
                         birth_form_obj.feeding_mode == 'Both breastfeeding and formula '
                                                        'feeding')
+
+    def get_subject_schedules(self, visit):
+        """Get subject schedules by visit subject identifier."""
+        model = self.get_model('edc_visit_schedule.subjectschedulehistory')
+        return model.objects.filter(subject_identifier=visit.subject_identifier).exclude(
+            Q(schedule_name__icontains='tb') | Q(schedule_name__icontains='facet')
+        ).values_list('onschedule_model', flat=True)
+
+    def get_schedule_names(self, visit, child_subject_identifier):
+        """Get schedule names by visit."""
+        onschedule = self.get_onschedule_obj(visit)
+        subject_schedules = self.get_subject_schedules(visit)
+        schedule_names = []
+        for model_name in subject_schedules:
+            model = self.get_model(model_name)
+            try:
+                onschedule = model.objects.get(
+                    subject_identifier=visit.subject_identifier,
+                    child_subject_identifier=child_subject_identifier)
+            except model.DoesNotExist:
+                continue
+            else:
+                schedule_names.append(onschedule.schedule_name)
+        return schedule_names
+
+    def func_childhood_lead_exposure_risk_required(self, visit=None, **kwargs):
+        model = self.get_model(f'{self.app_label}.childhoodleadexposurerisk')
+        appointment = visit.appointment
+
+        child_subject_identifier = None
+        onschedule_obj = self.get_onschedule_obj(visit)
+        if onschedule_obj:
+            child_subject_identifier = onschedule_obj.child_subject_identifier
+
+        prev_instance = None
+        schedule_names = self.get_schedule_names(
+            visit=visit,
+            child_subject_identifier=child_subject_identifier)
+
+        previous_appt = appointment.__class__.objects.filter(
+            subject_identifier=appointment.subject_identifier,
+            appt_datetime__lt=appointment.appt_datetime,
+            schedule_name__in=schedule_names,
+            visit_code_sequence=0)
+
+        if previous_appt.exists():
+            prev_instance = model.objects.filter(
+                maternal_visit__appointment=previous_appt.latest('appt_datetime')
+            )
+
+        is_follow_up = '300' in visit.visit_code
+
+        child_age = self.func_child_age(visit=visit)
+        if child_age:
+            child_age = child_age.years + (child_age.months / 12)
+
+        is_child_age_valid = not 1 < child_age < 6 if child_age is not None else False
+
+        if prev_instance and prev_instance.exists():
+            visit_definition = appointment.visits.get(appointment.visit_code)
+            earlist_appt_date = (appointment.timepoint_datetime -
+                                 visit_definition.rlower).astimezone(
+                pytz.timezone('Africa/Gaborone'))
+            return (earlist_appt_date - prev_instance[0].report_datetime) > timedelta(
+                days=365)
+        elif is_child_age_valid:
+            return False
+        else:
+            return is_follow_up
