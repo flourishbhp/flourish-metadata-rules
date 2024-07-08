@@ -11,13 +11,13 @@ pc = CaregiverPredicates()
 
 @register()
 class MaternalVisitRuleGroup(CrfRuleGroup):
-    
+
     clinician_notes = CrfRule(
         predicate=P('info_source', 'eq', PARTICIPANT),
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.cliniciannotes'])
-    
+
     pregnant = CrfRule(
         predicate=pc.enrolled_pregnant,
         consequence=REQUIRED,
@@ -136,11 +136,25 @@ class MaternalVisitRuleGroup(CrfRuleGroup):
         target_models=[f'{app_label}.maternalarvadherence']
     )
 
+    parent_adol_crf = CrfRule(
+        predicate=pc.func_gt10_and_after_a_year,
+        consequence=REQUIRED,
+        alternative=NOT_REQUIRED,
+        target_models=[f'{app_label}.parentadolrelationshipscale', ])
+    
     caregiver_tb_screening = CrfRule(
         predicate=pc.func_caregiver_tb_screening,
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.caregivertbscreening', ])
+
+    breast_milk_crf = CrfRule(
+        predicate=pc.func_show_breast_milk_crf,
+        consequence=REQUIRED,
+        alternative=NOT_REQUIRED,
+        target_models=[f'{app_label}.breastmilkbirth',
+                       f'{app_label}.breastmilk6months'],
+    )
 
     class Meta:
         app_label = app_label
