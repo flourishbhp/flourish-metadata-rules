@@ -647,7 +647,6 @@ class CaregiverPredicates(PredicateCollection):
 
         is_child_age_valid = not 1 < child_age < 6 if child_age is not None else False
 
-        breakpoint()
 
         if prev_instance and prev_instance.exists():
             visit_definition = appointment.visits.get(appointment.visit_code)
