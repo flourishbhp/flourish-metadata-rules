@@ -13,4 +13,5 @@ from .subject_visit_rules import MaternalVisitRuleGroup
 from .tb_engagement_rules import TbEngagementRuleGroup
 from .tb_interview_rules import TbInterviewRuleGroup
 from .tb_schedule_rules import TbScheduleRuleGroup
+from .caregiver_cage_aid_rules import CaregiverCageAidRuleGroup
 from .hit_screening_rules import HitsScreeningRuleGroup
