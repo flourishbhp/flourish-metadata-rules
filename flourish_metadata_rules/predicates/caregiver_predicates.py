@@ -4,16 +4,16 @@ from datetime import date, timedelta
 import pytz
 from dateutil import relativedelta
 from django.apps import apps as django_apps
-from django.db.models import Q
 from edc_base.utils import age, get_utcnow
-from edc_constants.constants import IND, NEG, PENDING, POS, UNK, YES
+from edc_constants.constants import IND, NEG, POS, UNK, YES
 from edc_metadata_rules import PredicateCollection
 from edc_reference.models import Reference
 
 from flourish_caregiver.constants import BREASTFEED_ONLY
 from flourish_caregiver.helper_classes import MaternalStatusHelper
-from flourish_caregiver.helper_classes.utils import get_child_subject_identifier_by_visit, \
-    get_previous_by_appt_datetime, get_schedule_names
+from flourish_caregiver.helper_classes.utils import (
+    get_child_subject_identifier_by_visit, \
+    get_previous_by_appt_datetime)
 
 
 def get_difference(birth_date=None):
@@ -426,8 +426,8 @@ class CaregiverPredicates(PredicateCollection):
                             child_age = age(
                                 child_consent.child_dob, get_utcnow())
                             child_age_in_months = ((
-                                child_age.years * 12) +
-                                child_age.months)
+                                                           child_age.years * 12) +
+                                                   child_age.months)
                             if child_age_in_months < 2:
                                 try:
                                     last_tb_bj = tb_screening_form_objs.latest(
@@ -456,13 +456,13 @@ class CaregiverPredicates(PredicateCollection):
             return False
         else:
             take_off_schedule = (
-                visit_screening.have_cough == YES or
-                visit_screening.cough_duration == '=>2 week' or
-                visit_screening.fever == YES or
-                visit_screening.night_sweats == YES or
-                visit_screening.weight_loss == YES or
-                visit_screening.cough_blood == YES or
-                visit_screening.enlarged_lymph_nodes == YES
+                    visit_screening.have_cough == YES or
+                    visit_screening.cough_duration == '=>2 week' or
+                    visit_screening.fever == YES or
+                    visit_screening.night_sweats == YES or
+                    visit_screening.weight_loss == YES or
+                    visit_screening.cough_blood == YES or
+                    visit_screening.enlarged_lymph_nodes == YES
             )
             return take_off_schedule
 
@@ -646,7 +646,6 @@ class CaregiverPredicates(PredicateCollection):
             child_age = child_age.years + (child_age.months / 12)
 
         is_child_age_valid = not 1 < child_age < 6 if child_age is not None else False
-
 
         if prev_instance and prev_instance.exists():
             visit_definition = appointment.visits.get(appointment.visit_code)
