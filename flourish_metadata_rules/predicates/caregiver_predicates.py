@@ -4,16 +4,16 @@ from datetime import date, timedelta
 import pytz
 from dateutil import relativedelta
 from django.apps import apps as django_apps
-from django.db.models import Q
 from edc_base.utils import age, get_utcnow
-from edc_constants.constants import IND, NEG, PENDING, POS, UNK, YES
+from edc_constants.constants import IND, NEG, POS, UNK, YES
 from edc_metadata_rules import PredicateCollection
 from edc_reference.models import Reference
 
 from flourish_caregiver.constants import BREASTFEED_ONLY
 from flourish_caregiver.helper_classes import MaternalStatusHelper
-from flourish_caregiver.helper_classes.utils import get_child_subject_identifier_by_visit, \
-    get_previous_by_appt_datetime, get_schedule_names
+from flourish_caregiver.helper_classes.utils import (
+    get_child_subject_identifier_by_visit, \
+    get_previous_by_appt_datetime)
 
 
 def get_difference(birth_date=None):
@@ -652,7 +652,6 @@ class CaregiverPredicates(PredicateCollection):
             child_age = child_age.years + (child_age.months / 12)
 
         is_child_age_valid = not 1 < child_age < 6 if child_age is not None else False
-
 
         if prev_instance and prev_instance.exists():
             visit_definition = appointment.visits.get(appointment.visit_code)
