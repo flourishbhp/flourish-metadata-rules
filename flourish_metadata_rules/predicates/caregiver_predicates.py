@@ -12,7 +12,8 @@ from edc_reference.models import Reference
 
 from flourish_caregiver.constants import BREASTFEED_ONLY
 from flourish_caregiver.helper_classes import MaternalStatusHelper
-from flourish_caregiver.helper_classes.utils import get_child_subject_identifier_by_visit
+from flourish_caregiver.helper_classes.utils import get_child_subject_identifier_by_visit, \
+    get_previous_by_appt_datetime, get_schedule_names
 
 
 def get_difference(birth_date=None):
@@ -632,54 +633,17 @@ class CaregiverPredicates(PredicateCollection):
                         birth_form_obj.feeding_mode == 'Both breastfeeding and formula '
                                                        'feeding')
 
-    def get_subject_schedules(self, visit):
-        """Get subject schedules by visit subject identifier."""
-        model = self.get_model('edc_visit_schedule.subjectschedulehistory')
-        return model.objects.filter(subject_identifier=visit.subject_identifier).exclude(
-            Q(schedule_name__icontains='tb') | Q(schedule_name__icontains='facet')
-        ).values_list('onschedule_model', flat=True)
-
-    def get_schedule_names(self, visit, child_subject_identifier):
-        """Get schedule names by visit."""
-        onschedule = self.get_onschedule_obj(visit)
-        subject_schedules = self.get_subject_schedules(visit)
-        schedule_names = []
-        for model_name in subject_schedules:
-            model = self.get_model(model_name)
-            try:
-                onschedule = model.objects.get(
-                    subject_identifier=visit.subject_identifier,
-                    child_subject_identifier=child_subject_identifier)
-            except model.DoesNotExist:
-                continue
-            else:
-                schedule_names.append(onschedule.schedule_name)
-        return schedule_names
-
     def func_childhood_lead_exposure_risk_required(self, visit=None, **kwargs):
-        model = self.get_model(f'{self.app_label}.childhoodleadexposurerisk')
+        model = django_apps.get_model(f'{self.app_label}.childhoodleadexposurerisk')
         appointment = visit.appointment
 
-        child_subject_identifier = None
-        onschedule_obj = self.get_onschedule_obj(visit)
-        if onschedule_obj:
-            child_subject_identifier = onschedule_obj.child_subject_identifier
-
         prev_instance = None
-        schedule_names = self.get_schedule_names(
-            visit=visit,
-            child_subject_identifier=child_subject_identifier)
 
-        previous_appt = appointment.__class__.objects.filter(
-            subject_identifier=appointment.subject_identifier,
-            appt_datetime__lt=appointment.appt_datetime,
-            schedule_name__in=schedule_names,
-            visit_code_sequence=0)
+        previous_appt = get_previous_by_appt_datetime(appointment)
 
-        if previous_appt.exists():
+        if previous_appt:
             prev_instance = model.objects.filter(
-                maternal_visit__appointment=previous_appt.latest('appt_datetime')
-            )
+                maternal_visit__appointment=previous_appt)
 
         is_follow_up = '300' in visit.visit_code
 
@@ -688,6 +652,8 @@ class CaregiverPredicates(PredicateCollection):
             child_age = child_age.years + (child_age.months / 12)
 
         is_child_age_valid = not 1 < child_age < 6 if child_age is not None else False
+
+        breakpoint()
 
         if prev_instance and prev_instance.exists():
             visit_definition = appointment.visits.get(appointment.visit_code)
