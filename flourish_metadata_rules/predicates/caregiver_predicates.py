@@ -13,7 +13,7 @@ from flourish_caregiver.constants import BREASTFEED_ONLY
 from flourish_caregiver.helper_classes import MaternalStatusHelper
 from flourish_caregiver.helper_classes.utils import (
     get_child_subject_identifier_by_visit, \
-    get_previous_by_appt_datetime)
+    get_schedule_names)
 
 
 def get_difference(birth_date=None):
@@ -637,13 +637,26 @@ class CaregiverPredicates(PredicateCollection):
         model = django_apps.get_model(f'{self.app_label}.childhoodleadexposurerisk')
         appointment = visit.appointment
 
-        prev_instance = None
+        schedule_names = get_schedule_names(appointment)
 
-        previous_appt = get_previous_by_appt_datetime(appointment)
+        previous_appts = appointment.__class__.objects.filter(
+            subject_identifier=appointment.subject_identifier,
+            appt_datetime__lt=appointment.appt_datetime,
+            schedule_name__in=schedule_names,
+            visit_code_sequence=0).order_by('-timepoint_datetime')
 
-        if previous_appt:
+        for apt in previous_appts:
             prev_instance = model.objects.filter(
-                maternal_visit__appointment=previous_appt)
+                maternal_visit__appointment=apt)
+            if not prev_instance.exists():
+                continue
+
+            visit_definition = appointment.visits.get(appointment.visit_code)
+            earlist_appt_date = (appointment.timepoint_datetime -
+                                 visit_definition.rlower).astimezone(
+                pytz.timezone('Africa/Gaborone'))
+            return (earlist_appt_date - prev_instance[0].report_datetime) > timedelta(
+                days=365)
 
         is_follow_up = '300' in visit.visit_code
 
@@ -651,16 +664,6 @@ class CaregiverPredicates(PredicateCollection):
         if child_age:
             child_age = child_age.years + (child_age.months / 12)
 
-        is_child_age_valid = not 1 < child_age < 6 if child_age is not None else False
+        is_valid_age = not 1 < child_age < 5 if child_age is not None else False
 
-        if prev_instance and prev_instance.exists():
-            visit_definition = appointment.visits.get(appointment.visit_code)
-            earlist_appt_date = (appointment.timepoint_datetime -
-                                 visit_definition.rlower).astimezone(
-                pytz.timezone('Africa/Gaborone'))
-            return (earlist_appt_date - prev_instance[0].report_datetime) > timedelta(
-                days=365)
-        elif is_child_age_valid:
-            return False
-        else:
-            return is_follow_up
+        return False if is_valid_age else is_follow_up
