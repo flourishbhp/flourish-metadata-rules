@@ -1,6 +1,7 @@
-from edc_constants.constants import PARTICIPANT
 from edc_metadata import NOT_REQUIRED, REQUIRED
-from edc_metadata_rules import CrfRule, CrfRuleGroup, P, register
+from edc_metadata_rules import CrfRule, CrfRuleGroup, register
+from edc_constants.constants import PARTICIPANT
+from edc_metadata_rules import P
 
 from ...predicates import CaregiverPredicates
 
@@ -10,6 +11,7 @@ pc = CaregiverPredicates()
 
 @register()
 class MaternalVisitRuleGroup(CrfRuleGroup):
+
     clinician_notes = CrfRule(
         predicate=P('info_source', 'eq', PARTICIPANT),
         consequence=REQUIRED,
@@ -153,6 +155,13 @@ class MaternalVisitRuleGroup(CrfRuleGroup):
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.parentadolrelationshipscale', ])
+
+    childhood_lead_exposure_risk = CrfRule(
+        predicate=pc.func_childhood_lead_exposure_risk_required,
+        consequence=REQUIRED,
+        alternative=NOT_REQUIRED,
+        target_models=[f'{app_label}.childhoodleadexposurerisk', ]
+    )
 
     class Meta:
         app_label = app_label

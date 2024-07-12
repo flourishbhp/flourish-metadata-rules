@@ -1,4 +1,5 @@
 from datetime import timedelta
+from dateutil.relativedelta import relativedelta
 
 import pytz
 from django.apps import apps as django_apps
@@ -725,19 +726,3 @@ class ChildPredicates(PredicateCollection):
 
             )
         return False
-
-    def func_childhood_lead_exposure_risk_required(self, visit=None, **kwargs):
-        childhood_lead_exposure_risk_model = f'{self.app_label}.childhoodleadexposurerisk'
-        prev_instance = self.previous_model(visit=visit,
-                                            model=childhood_lead_exposure_risk_model)
-        is_follow_up = '300' in visit.visit_code
-
-        if prev_instance:
-            visit_definition = visit.appointment.visits.get(visit.appointment.visit_code)
-            earlist_appt_date = (visit.appointment.timepoint_datetime -
-                                 visit_definition.rlower).astimezone(
-                pytz.timezone('Africa/Gaborone'))
-            return (earlist_appt_date - prev_instance.report_datetime) > timedelta(
-                days=365)
-        else:
-            return is_follow_up
