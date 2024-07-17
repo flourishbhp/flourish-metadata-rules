@@ -1,9 +1,10 @@
 from datetime import timedelta
+from dateutil.relativedelta import relativedelta
 
 from django.apps import apps as django_apps
 from django.db.models import Q
 from edc_base.utils import age, get_utcnow
-from edc_constants.constants import FEMALE, IND, NO, OTHER, PENDING, POS, UNKNOWN, YES
+from edc_constants.constants import FEMALE, IND, NO, OTHER, PENDING, POS, YES
 from edc_metadata_rules import PredicateCollection
 from edc_reference.models import Reference
 
@@ -522,7 +523,7 @@ class ChildPredicates(PredicateCollection):
             hiv_test_6wks_post_wean = self.infant_hiv_test_model_cls.objects.filter(
                 child_visit__subject_identifier=child_subject_identifier,
                 received_date__gte=infant_feeding_crf.dt_weaned +
-                                   timedelta(weeks=6)
+                timedelta(weeks=6)
             ).exists()
 
         child_age = self.get_child_age(visit=visit)
@@ -545,7 +546,7 @@ class ChildPredicates(PredicateCollection):
                 infant_feeding_crf, 'continuing_to_bf', None)
 
             return continuing_to_bf == YES or (continuing_to_bf == NO and not
-            hiv_test_6wks_post_wean)
+                                               hiv_test_6wks_post_wean)
 
         return False
 
@@ -645,11 +646,11 @@ class ChildPredicates(PredicateCollection):
             pass
         else:
             return (
-                    cage_obj.alcohol_drugs == YES or
-                    cage_obj.cut_down == YES or
-                    cage_obj.people_reaction == YES or
-                    cage_obj.guilt == YES or
-                    cage_obj.eye_opener == YES
+                cage_obj.alcohol_drugs == YES or
+                cage_obj.cut_down == YES or
+                cage_obj.people_reaction == YES or
+                cage_obj.guilt == YES or
+                cage_obj.eye_opener == YES
 
             )
         return False
@@ -710,41 +711,3 @@ class ChildPredicates(PredicateCollection):
         model = 'flourish_child.infanthivtesting9months'
         return (self.hiv_test_required('9_months', visit) or
                 self.func_results_on_unscheduled(model=model, visit=visit))
-
-    def func_heu_status_disclosed(self, visit, **kwargs):
-        child_subject_identifier = visit.subject_identifier
-        is_biological = child_utils.is_bio_mother(child_subject_identifier)
-
-        disclosure_crfs = ['flourish_caregiver.hivdisclosurestatusa',
-                           'flourish_caregiver.hivdisclosurestatusb',
-                           'flourish_caregiver.hivdisclosurestatusc']
-
-        for crf in disclosure_crfs:
-            model_cls = django_apps.get_model(crf)
-            disclosed_status = model_cls.objects.filter(
-                associated_child_identifier=visit.subject_identifier,
-                disclosed_status=YES).exists()
-            if disclosed_status:
-                return is_biological and self.func_hiv_exposed(visit)
-
-    def func_child_social_work_referral_required(self, visit=None, **kwargs):
-        """Returns true if child Social _work referral crf is required
-        """
-        child_cage_aid_model_cls = django_apps.get_model(
-            f'{self.app_label}.childcageaid')
-        try:
-            cage_obj = child_cage_aid_model_cls.objects.get(
-                child_visit__subject_identifier=visit.subject_identifier
-            )
-        except child_cage_aid_model_cls.DoesNotExist:
-            pass
-        else:
-            return (
-                    cage_obj.alcohol_drugs == YES or
-                    cage_obj.cut_down == YES or
-                    cage_obj.people_reaction == YES or
-                    cage_obj.guilt == YES or
-                    cage_obj.eye_opener == YES
-
-            )
-        return False
