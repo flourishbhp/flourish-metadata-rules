@@ -1,7 +1,6 @@
 import re
-from datetime import date, timedelta
+from datetime import date
 
-import pytz
 from dateutil import relativedelta
 from django.apps import apps as django_apps
 from edc_base.utils import age, get_utcnow
@@ -645,12 +644,9 @@ class CaregiverPredicates(PredicateCollection):
             if not prev_instance.exists():
                 continue
 
-            visit_definition = appointment.visits.get(appointment.visit_code)
-            latest_appt_date = (appointment.timepoint_datetime +
-                                 visit_definition.rupper).astimezone(
-                pytz.timezone('Africa/Gaborone'))
-            return (latest_appt_date - prev_instance[0].report_datetime) > timedelta(
-                days=365)
+            prev_visit_code = prev_instance[0].maternal_visit.visit_code
+
+            return (int(visit.visit_code[:4]) - 4) == int(prev_visit_code[:4])
 
         is_follow_up = '300' in visit.visit_code
 
