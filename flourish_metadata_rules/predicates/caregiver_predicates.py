@@ -646,10 +646,10 @@ class CaregiverPredicates(PredicateCollection):
                 continue
 
             visit_definition = appointment.visits.get(appointment.visit_code)
-            earlist_appt_date = (appointment.timepoint_datetime -
-                                 visit_definition.rlower).astimezone(
+            latest_appt_date = (appointment.timepoint_datetime +
+                                 visit_definition.rupper).astimezone(
                 pytz.timezone('Africa/Gaborone'))
-            return (earlist_appt_date - prev_instance[0].report_datetime) > timedelta(
+            return (latest_appt_date - prev_instance[0].report_datetime) > timedelta(
                 days=365)
 
         is_follow_up = '300' in visit.visit_code
