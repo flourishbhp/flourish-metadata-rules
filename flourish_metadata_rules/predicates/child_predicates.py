@@ -524,7 +524,7 @@ class ChildPredicates(PredicateCollection):
             hiv_test_6wks_post_wean = self.infant_hiv_test_model_cls.objects.filter(
                 child_visit__subject_identifier=child_subject_identifier,
                 received_date__gte=infant_feeding_crf.dt_weaned +
-                                   timedelta(weeks=6)
+                timedelta(weeks=6)
             ).exists()
 
         child_age = self.get_child_age(visit=visit)
@@ -547,7 +547,7 @@ class ChildPredicates(PredicateCollection):
                 infant_feeding_crf, 'continuing_to_bf', None)
 
             return continuing_to_bf == YES or (continuing_to_bf == NO and not
-            hiv_test_6wks_post_wean)
+                                               hiv_test_6wks_post_wean)
 
         return False
 
@@ -619,7 +619,8 @@ class ChildPredicates(PredicateCollection):
                 visit_code=visit.visit_code,
                 visit_code_sequence=visit.appointment.visit_code_sequence - 1)
             try:
-                prev_obj = model_cls.objects.get(child_visit__appointment=previous_appt)
+                prev_obj = model_cls.objects.get(
+                    child_visit__appointment=previous_appt)
             except model_cls.DoesNotExist:
                 return False
             else:
@@ -718,11 +719,10 @@ class ChildPredicates(PredicateCollection):
             pass
         else:
             return (
-                    cage_obj.alcohol_drugs == YES or
-                    cage_obj.cut_down == YES or
-                    cage_obj.people_reaction == YES or
-                    cage_obj.guilt == YES or
-                    cage_obj.eye_opener == YES
+                cage_obj.cut_down == YES or
+                cage_obj.people_reaction == YES or
+                cage_obj.guilt == YES or
+                cage_obj.eye_opener == YES
 
             )
         return False
