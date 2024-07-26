@@ -8,7 +8,7 @@ from edc_constants.constants import IND, NEG, PENDING, POS, UNK, YES
 from flourish_caregiver.constants import BREASTFEED_ONLY
 from edc_metadata_rules import PredicateCollection
 from edc_reference.models import Reference
-from flourish_caregiver.choices import BREASTFEED_ONLY
+
 from flourish_caregiver.helper_classes import MaternalStatusHelper
 from flourish_caregiver.helper_classes.utils import get_child_subject_identifier_by_visit
 
