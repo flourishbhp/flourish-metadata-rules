@@ -5,10 +5,10 @@ from dateutil import relativedelta
 from django.apps import apps as django_apps
 from edc_base.utils import age, get_utcnow
 from edc_constants.constants import IND, NEG, PENDING, POS, UNK, YES
+from flourish_caregiver.constants import BREASTFEED_ONLY
 from edc_metadata_rules import PredicateCollection
 from edc_reference.models import Reference
-
-from flourish_caregiver.constants import BREASTFEED_ONLY
+from flourish_caregiver.choices import BREASTFEED_ONLY
 from flourish_caregiver.helper_classes import MaternalStatusHelper
 from flourish_caregiver.helper_classes.utils import get_child_subject_identifier_by_visit
 
@@ -80,7 +80,7 @@ class CaregiverPredicates(PredicateCollection):
             return False
         else:
             return True
-        
+
     def child_gt10(self, visit):
 
         onschedule_model = django_apps.get_model(
@@ -118,7 +118,7 @@ class CaregiverPredicates(PredicateCollection):
                     if (child_age <= 15.9 and child_age >= 10):
                         return [True, child_subject_identifier]
         return [False, child_subject_identifier]
-    
+
     def func_child_age(self, visit=None, **kwargs):
         onschedule_model = django_apps.get_model(
             visit.appointment.schedule.onschedule_model)
@@ -155,33 +155,36 @@ class CaregiverPredicates(PredicateCollection):
     def func_child_age_gte10(self, visit, **kwargs):
         child_age = self.func_child_age(visit=visit, **kwargs)
         return child_age.years >= 10 if child_age else False
-    
+
     def func_gt10_and_after_a_year(self, visit, **kwargs):
         # return child_age.years >= 10 if child_age else False
-        relationship_scale_cls = django_apps.get_model('flourish_caregiver.parentadolrelationshipscale')
+        relationship_scale_cls = django_apps.get_model(
+            'flourish_caregiver.parentadolrelationshipscale')
         is_gte_10 = self.func_child_age_gte10(visit, **kwargs)
 
         relationship_scale_objs = relationship_scale_cls.objects.filter(
-            maternal_visit__subject_identifier = visit.subject_identifier)
-        
+            maternal_visit__subject_identifier=visit.subject_identifier)
+
         result = False
 
-        #show crf if it doesn't exist at all
+        # show crf if it doesn't exist at all
         if not relationship_scale_objs.exists():
             result = is_gte_10
         else:
-            # show again after 4 visits from the latest 
-            relationship_scale_obj = relationship_scale_objs.latest('report_datetime')
+            # show again after 4 visits from the latest
+            relationship_scale_obj = relationship_scale_objs.latest(
+                'report_datetime')
             visit_code = relationship_scale_obj.visit_code
 
-            calculated_visit_code = int(re.search(r'\d+', visit_code).group())+4
-            
+            calculated_visit_code = int(
+                re.search(r'\d+', visit_code).group())+4
+
             next_visit_code = f'{calculated_visit_code}{visit_code[-1]}'
 
-            result =  next_visit_code==visit.visit_code and is_gte_10
+            result = next_visit_code == visit.visit_code and is_gte_10
 
         return result
-        
+
     def prior_participation(self, visit=None, **kwargs):
         maternal_dataset_model = django_apps.get_model(
             f'{self.app_label}.maternaldataset')
@@ -579,7 +582,6 @@ class CaregiverPredicates(PredicateCollection):
             pass
         else:
             return (
-                cage_obj.alcohol_drugs == YES or
                 cage_obj.cut_down == YES or
                 cage_obj.people_reaction == YES or
                 cage_obj.guilt == YES or
@@ -608,12 +610,12 @@ class CaregiverPredicates(PredicateCollection):
         return self.func_caregiver_social_work_referral_required(visit=visit) or self.func_counselling_referral(visit=visit)
 
     def func_show_breast_milk_crf(self, visit=None, **kwargs):
-        """ Returns true if participant is breastfeeding of breastfeeding and formula
-        feeding.
+        """ Returns true if participant is breastfeeding of breastfeeding and formula feeding
+            and LWHIV ONLY.
         """
         child_subject_identifier = get_child_subject_identifier_by_visit(visit)
 
-        if self.enrolled_pregnant(visit=visit, **kwargs):
+        if self.enrolled_pregnant(visit=visit, **kwargs) and self.func_hiv_positive(visit):
             birth_form_model_cls = django_apps.get_model(
                 f'{self.app_label}.maternaldelivery')
             try:
