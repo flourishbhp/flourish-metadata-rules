@@ -646,7 +646,6 @@ class ChildPredicates(PredicateCollection):
             pass
         else:
             return (
-                cage_obj.alcohol_drugs == YES or
                 cage_obj.cut_down == YES or
                 cage_obj.people_reaction == YES or
                 cage_obj.guilt == YES or
@@ -673,7 +672,8 @@ class ChildPredicates(PredicateCollection):
                 visit_code=visit.visit_code,
                 visit_code_sequence=visit.appointment.visit_code_sequence - 1)
             try:
-                prev_obj = model_cls.objects.get(child_visit__appointment=previous_appt)
+                prev_obj = model_cls.objects.get(
+                    child_visit__appointment=previous_appt)
             except model_cls.DoesNotExist:
                 return False
             else:
@@ -711,3 +711,50 @@ class ChildPredicates(PredicateCollection):
         model = 'flourish_child.infanthivtesting9months'
         return (self.hiv_test_required('9_months', visit) or
                 self.func_results_on_unscheduled(model=model, visit=visit))
+
+    def func_child_tb_referral_outcome(self, visit=None, **kwargs):
+        """Returns true if caregiver TB referral outcome crf is required
+        """
+        prev_child_tb_referral_objs = Reference.objects.filter(
+            model=f'{self.app_label}.childtbreferral',
+            report_datetime__lt=visit.report_datetime,
+            identifier=visit.subject_identifier, )
+        prev_child_tb_referral_outcome_objs = Reference.objects.filter(
+            model=f'{self.app_label}.childtbreferraloutcome',
+            report_datetime__lt=visit.report_datetime,
+            identifier=visit.subject_identifier, )
+
+        if prev_child_tb_referral_objs.exists():
+            return prev_child_tb_referral_objs.count() > \
+                prev_child_tb_referral_outcome_objs.count()
+        return False
+
+    def func_child_tb_referral_required(self, visit=None, **kwargs):
+        """Returns true if child TB referral crf is required
+        """
+        child_tb_screening_model_cls = django_apps.get_model(
+            f'{self.app_label}.childtbscreening')
+        try:
+            visit_obj = child_tb_screening_model_cls.objects.get(
+                child_visit=visit
+            )
+        except child_tb_screening_model_cls.DoesNotExist:
+            return False
+        else:
+            return visit_obj.tb_diagnoses
+
+    def func_heu_status_disclosed(self, visit, **kwargs):
+        child_subject_identifier = visit.subject_identifier
+        is_biological = child_utils.is_bio_mother(child_subject_identifier)
+
+        disclosure_crfs = ['flourish_caregiver.hivdisclosurestatusa',
+                           'flourish_caregiver.hivdisclosurestatusb',
+                           'flourish_caregiver.hivdisclosurestatusc']
+
+        for crf in disclosure_crfs:
+            model_cls = django_apps.get_model(crf)
+            disclosed_status = model_cls.objects.filter(
+                associated_child_identifier=visit.subject_identifier,
+                disclosed_status=YES).exists()
+            if disclosed_status:
+                return is_biological and self.func_hiv_exposed(visit)
