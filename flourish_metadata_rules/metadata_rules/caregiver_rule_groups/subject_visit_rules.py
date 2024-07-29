@@ -137,18 +137,6 @@ class MaternalVisitRuleGroup(CrfRuleGroup):
         target_models=[f'{app_label}.maternalarvadherence']
     )
 
-    parent_adol_crf = CrfRule(
-        predicate=pc.func_gt10_and_after_a_year,
-        consequence=REQUIRED,
-        alternative=NOT_REQUIRED,
-        target_models=[f'{app_label}.parentadolrelationshipscale', ])
-
-    caregiver_tb_screening = CrfRule(
-        predicate=pc.func_caregiver_tb_screening,
-        consequence=REQUIRED,
-        alternative=NOT_REQUIRED,
-        target_models=[f'{app_label}.caregivertbscreening', ])
-
     caregiver_tb_referral_outcome = CrfRule(
         predicate=pc.func_caregiver_tb_referral_outcome,
         consequence=REQUIRED,
@@ -162,6 +150,12 @@ class MaternalVisitRuleGroup(CrfRuleGroup):
         target_models=[f'{app_label}.breastmilkbirth',
                        f'{app_label}.breastmilk6months'],
     )
+
+    parent_adol_crf = CrfRule(
+        predicate=pc.func_gt10_and_after_a_year,
+        consequence=REQUIRED,
+        alternative=NOT_REQUIRED,
+        target_models=[f'{app_label}.parentadolrelationshipscale', ])
 
     class Meta:
         app_label = app_label
