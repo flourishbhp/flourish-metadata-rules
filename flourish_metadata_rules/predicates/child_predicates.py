@@ -4,7 +4,7 @@ from dateutil.relativedelta import relativedelta
 from django.apps import apps as django_apps
 from django.db.models import Q
 from edc_base.utils import age, get_utcnow
-from edc_constants.constants import FEMALE, IND, NO, OTHER, PENDING, POS, YES
+from edc_constants.constants import FEMALE, IND, NO,OTHER, PENDING, POS, YES
 from edc_metadata_rules import PredicateCollection
 from edc_reference.models import Reference
 
@@ -711,3 +711,34 @@ class ChildPredicates(PredicateCollection):
         model = 'flourish_child.infanthivtesting9months'
         return (self.hiv_test_required('9_months', visit) or
                 self.func_results_on_unscheduled(model=model, visit=visit))
+
+    def func_child_tb_referral_outcome(self, visit=None, **kwargs):
+        """Returns true if caregiver TB referral outcome crf is required
+        """
+        prev_child_tb_referral_objs = Reference.objects.filter(
+            model=f'{self.app_label}.childtbreferral',
+            report_datetime__lt=visit.report_datetime,
+            identifier=visit.subject_identifier, )
+        prev_child_tb_referral_outcome_objs = Reference.objects.filter(
+            model=f'{self.app_label}.childtbreferraloutcome',
+            report_datetime__lt=visit.report_datetime,
+            identifier=visit.subject_identifier, )
+
+        if prev_child_tb_referral_objs.exists():
+            return prev_child_tb_referral_objs.count() > \
+                   prev_child_tb_referral_outcome_objs.count()
+        return False
+
+    def func_child_tb_referral_required(self, visit=None, **kwargs):
+        """Returns true if child TB referral crf is required
+        """
+        child_tb_screening_model_cls = django_apps.get_model(
+            f'{self.app_label}.childtbscreening')
+        try:
+            visit_obj = child_tb_screening_model_cls.objects.get(
+                child_visit=visit
+            )
+        except child_tb_screening_model_cls.DoesNotExist:
+            return False
+        else:
+            return visit_obj.tb_diagnoses

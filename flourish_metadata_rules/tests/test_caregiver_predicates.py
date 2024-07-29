@@ -1,17 +1,18 @@
 from dateutil.relativedelta import relativedelta
-from django.test import TestCase, tag
+from django.test import tag, TestCase
 from edc_base.tests import SiteTestCaseMixin
 from edc_base.utils import get_utcnow
-from edc_constants.constants import YES, POS, NEG
+from edc_constants.constants import NEG, PENDING, POS, YES
 from edc_facility.import_holidays import import_holidays
 from edc_reference import LongitudinalRefset
 from edc_reference.tests import ReferenceTestHelper
 
-from .models import HivRapidTestCounseling, MaternalVisit, Appointment, \
-    CaregiverChildConsent
-from .models import MaternalDataset, AntenatalEnrollment, CyhuuPreEnrollment, \
-    SubjectConsent
-from .models import ScreeningPriorBhpParticipants, RelationshipFatherInvolvement
+from .models import AntenatalEnrollment, CaregiverTBScreening, CyhuuPreEnrollment, \
+    MaternalDataset, \
+    SubjectConsent, TBReferralCaregiver
+from .models import Appointment, CaregiverChildConsent, HivRapidTestCounseling, \
+    MaternalVisit
+from .models import RelationshipFatherInvolvement, ScreeningPriorBhpParticipants
 from ..predicates import CaregiverPredicates
 
 
@@ -90,7 +91,7 @@ class TestMaternalPredicates(SiteTestCaseMixin, TestCase):
 
         self.assertTrue(
             pc.func_bio_mothers_hiv_cohort_a(self.maternal_visits[1], ))
-    
+
     def test_func_bio_mothers_hiv(self):
         pc = CaregiverPredicates()
         pc.app_label = self.app_label
@@ -168,16 +169,15 @@ class TestMaternalPredicates(SiteTestCaseMixin, TestCase):
 
         self.assertTrue(
             pc.func_LWHIV_aged_10_15a(self.maternal_visits[0], ))
-        
-      
+
     def test_func_b_feeding(self):
         pc = CaregiverPredicates()
         pc.app_label = self.app_label
-        
+
         AntenatalEnrollment.objects.create(subject_identifier=self.subject_identifier)
         self.assertTrue(pc.func_show_b_feeding_form(self.maternal_visits[2], ))
-    
-    @tag('bio_mothers')    
+
+    @tag('bio_mothers')
     def test_func_show_hiv_test_form(self):
         pc = CaregiverPredicates()
         pc.app_label = self.app_label
@@ -190,7 +190,7 @@ class TestMaternalPredicates(SiteTestCaseMixin, TestCase):
         SubjectConsent.objects.create(subject_identifier=self.subject_identifier,
                                       screening_identifier=self.screening_identifier,
                                       biological_caregiver=YES)
-        
+
         appointment = Appointment.objects.create(
             subject_identifier=self.subject_identifier)
 
@@ -199,46 +199,73 @@ class TestMaternalPredicates(SiteTestCaseMixin, TestCase):
             subject_identifier=self.subject_identifier)
         CyhuuPreEnrollment.objects.create(maternal_visit=maternal_visit,
                                           biological_mother=YES)
-        
+
         HivRapidTestCounseling.objects.create(maternal_visit=maternal_visit,
                                               subject_identifier=self.subject_identifier,
                                               result=NEG)
 
         self.assertTrue(
-            pc.func_show_hiv_test_form(visit=self.maternal_visits[0], )) 
-           
-    @tag('sfi')    
+            pc.func_show_hiv_test_form(visit=self.maternal_visits[0], ))
+
+    @tag('sfi')
     def test_func_show_father_involvement(self):
         pc = CaregiverPredicates()
         pc.app_label = self.app_label
-        
+
         MaternalDataset.objects.create(subject_identifier=self.subject_identifier)
         ScreeningPriorBhpParticipants.objects.create(
             screening_identifier=self.screening_identifier,
             flourish_participation='interested')
-        
+
         SubjectConsent.objects.create(subject_identifier=self.subject_identifier,
                                       screening_identifier=self.screening_identifier,
                                       biological_caregiver=YES)
-        
+
         appointment = Appointment.objects.create(
             subject_identifier=self.subject_identifier)
-        
+
         maternal_visit = MaternalVisit.objects.create(
             appointment=appointment,
             subject_identifier=self.subject_identifier)
         HivRapidTestCounseling.objects.create(maternal_visit=maternal_visit,
                                               subject_identifier=self.subject_identifier,
                                               result=POS)
-        
-        RelationshipFatherInvolvement.objects.create(maternal_visit=maternal_visit,
-                                              subject_identifier=self.subject_identifier,
-                                              partner_present=YES)
-        
-        
-        self.assertTrue(
-            pc.func_show_father_involvement(visit=self.maternal_visits[1], )) 
 
+        RelationshipFatherInvolvement.objects.create(maternal_visit=maternal_visit,
+                                                     subject_identifier=self.subject_identifier,
+                                                     partner_present=YES)
+
+        self.assertTrue(
+            pc.func_show_father_involvement(visit=self.maternal_visits[1], ))
+
+    @tag('fcts')
+    def test_func_caregiver_tb_screening(self):
+        pc = CaregiverPredicates()
+        pc.app_label = self.app_label
+
+        MaternalDataset.objects.create(subject_identifier=self.subject_identifier)
+        ScreeningPriorBhpParticipants.objects.create(
+            screening_identifier=self.screening_identifier,
+            flourish_participation='interested')
+
+        SubjectConsent.objects.create(subject_identifier=self.subject_identifier,
+                                      screening_identifier=self.screening_identifier,
+                                      biological_caregiver=YES)
+
+        appointment = Appointment.objects.create(
+            subject_identifier=self.subject_identifier)
+
+        maternal_visit = MaternalVisit.objects.create(
+            appointment=appointment,
+            subject_identifier=self.subject_identifier)
+
+        CaregiverTBScreening.objects.create(maternal_visit=maternal_visit,
+                                            subject_identifier=self.subject_identifier,
+                                            report_datetime=get_utcnow(),
+                                            chest_xray_results=PENDING)
+
+        self.assertTrue(
+            pc.func_caregiver_tb_screening(visit=self.maternal_visits[1], ))
     @property
     def maternal_visits(self):
         return LongitudinalRefset(
@@ -246,4 +273,4 @@ class TestMaternalPredicates(SiteTestCaseMixin, TestCase):
             visit_model=self.visit_model,
             name=self.visit_model,
             reference_model_cls=self.reference_model
-            ).order_by('report_datetime')
+        ).order_by('report_datetime')
