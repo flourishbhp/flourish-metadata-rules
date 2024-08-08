@@ -140,7 +140,7 @@ class CaregiverPredicates(PredicateCollection):
     def func_gt10_and_after_a_year(self, visit, **kwargs):
         # return child_age.years >= 10 if child_age else False
         relationship_scale_cls = django_apps.get_model(
-            'flourish_caregiver.parentadolrelationshipscale')
+            'flourish_caregiver.parentadolreloscaleparentmodel')
         is_gte_10 = self.func_child_age_gte10(visit, **kwargs)
 
         relationship_scale_objs = relationship_scale_cls.objects.filter(
