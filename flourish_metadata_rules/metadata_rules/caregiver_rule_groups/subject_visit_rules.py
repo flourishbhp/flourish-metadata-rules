@@ -154,7 +154,7 @@ class MaternalVisitRuleGroup(CrfRuleGroup):
         predicate=pc.func_gt10_and_after_a_year,
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
-        target_models=[f'{app_label}.parentadolrelationshipscale', ])
+        target_models=[f'{app_label}.parentadolreloscaleparentmodel', ])
 
     childhood_lead_exposure_risk = CrfRule(
         predicate=pc.func_childhood_lead_exposure_risk_required,
