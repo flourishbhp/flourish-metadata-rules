@@ -1,10 +1,10 @@
 from datetime import timedelta
-from dateutil.relativedelta import relativedelta
 
 from django.apps import apps as django_apps
 from django.db.models import Q
 from edc_base.utils import age, get_utcnow
-from edc_constants.constants import FEMALE, IND, NO,OTHER, PENDING, POS, YES
+from edc_constants.constants import (FEMALE, IND, NO, OTHER, PENDING, POS, YES,
+                                     UNKNOWN)
 from edc_metadata_rules import PredicateCollection
 from edc_reference.models import Reference
 
@@ -646,7 +646,6 @@ class ChildPredicates(PredicateCollection):
             pass
         else:
             return (
-                cage_obj.alcohol_drugs == YES or
                 cage_obj.cut_down == YES or
                 cage_obj.people_reaction == YES or
                 cage_obj.guilt == YES or
@@ -673,7 +672,8 @@ class ChildPredicates(PredicateCollection):
                 visit_code=visit.visit_code,
                 visit_code_sequence=visit.appointment.visit_code_sequence - 1)
             try:
-                prev_obj = model_cls.objects.get(child_visit__appointment=previous_appt)
+                prev_obj = model_cls.objects.get(
+                    child_visit__appointment=previous_appt)
             except model_cls.DoesNotExist:
                 return False
             else:
@@ -726,7 +726,7 @@ class ChildPredicates(PredicateCollection):
 
         if prev_child_tb_referral_objs.exists():
             return prev_child_tb_referral_objs.count() > \
-                   prev_child_tb_referral_outcome_objs.count()
+                prev_child_tb_referral_outcome_objs.count()
         return False
 
     def func_child_tb_referral_required(self, visit=None, **kwargs):

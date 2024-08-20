@@ -5,10 +5,10 @@ from dateutil import relativedelta
 from django.apps import apps as django_apps
 from edc_base.utils import age, get_utcnow
 from edc_constants.constants import IND, NEG, PENDING, POS, UNK, YES
+from flourish_caregiver.constants import BREASTFEED_ONLY
 from edc_metadata_rules import PredicateCollection
 from edc_reference.models import Reference
 
-from flourish_caregiver.constants import BREASTFEED_ONLY
 from flourish_caregiver.helper_classes import MaternalStatusHelper
 from flourish_caregiver.helper_classes.utils import (
     get_child_subject_identifier_by_visit, \
@@ -615,12 +615,10 @@ class CaregiverPredicates(PredicateCollection):
             pass
         else:
             return (
-                    cage_obj.alcohol_drugs == YES or
-                    cage_obj.cut_down == YES or
-                    cage_obj.people_reaction == YES or
-                    cage_obj.guilt == YES or
-                    cage_obj.eye_opener == YES
-
+                cage_obj.cut_down == YES or
+                cage_obj.people_reaction == YES or
+                cage_obj.guilt == YES or
+                cage_obj.eye_opener == YES
             )
         return False
 
@@ -645,12 +643,12 @@ class CaregiverPredicates(PredicateCollection):
                 self.func_counselling_referral(visit=visit))
 
     def func_show_breast_milk_crf(self, visit=None, **kwargs):
-        """ Returns true if participant is breastfeeding of breastfeeding and formula
-        feeding.
+        """ Returns true if participant is breastfeeding of breastfeeding and formula feeding
+            and LWHIV ONLY.
         """
         child_subject_identifier = get_child_subject_identifier_by_visit(visit)
 
-        if self.enrolled_pregnant(visit=visit, **kwargs):
+        if self.enrolled_pregnant(visit=visit, **kwargs) and self.func_hiv_positive(visit):
             birth_form_model_cls = django_apps.get_model(
                 f'{self.app_label}.maternaldelivery')
             try:
