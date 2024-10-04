@@ -29,6 +29,7 @@ class ChildPredicates(PredicateCollection):
     tb_lab_results_model = f'{app_label}.tblabresultsadol'
     infant_feeding_model = f'{app_label}.infantfeeding'
     infant_hiv_test_model = f'{app_label}.infanthivtesting'
+    rapid_hiv_test_model = f'{app_label}.childhivrapidtestcounseling'
     tb_hivtesting_model = f'{app_label}.hivtestingadol'
     infant_arv_proph_model = f'{app_label}.infantarvprophylaxis'
     relationship_father_involvement_model = (
@@ -65,6 +66,10 @@ class ChildPredicates(PredicateCollection):
     @property
     def infant_hiv_test_model_cls(self):
         return django_apps.get_model(self.infant_hiv_test_model)
+
+    @property
+    def rapid_hiv_test_model_cls(self):
+        return django_apps.get_model(self.rapid_hiv_test_model)
 
     @property
     def infant_arv_proph_model_cls(self):
@@ -742,3 +747,12 @@ class ChildPredicates(PredicateCollection):
             return False
         else:
             return visit_obj.tb_diagnoses
+
+    def func_rapid_hiv_testing_required(self, visit, **kwargs):
+        prev_tests = self.rapid_hiv_test_model_cls.objects.filter(
+            child_visit__subject_identifier=visit.subject_identifier)
+        if not prev_tests.exists():
+            return True
+        latest_test = prev_tests.latest('result_date')
+        return (
+            visit.report_datetime.date() - latest_test.result_date).days > 90

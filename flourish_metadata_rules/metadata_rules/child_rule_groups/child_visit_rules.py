@@ -149,6 +149,12 @@ class ChildVisitRuleGroup(CrfRuleGroup):
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.childsafistigma', ])
 
+    rapid_hiv_test = CrfRule(
+        predicate=pc.func_rapid_hiv_testing_required,
+        consequence=REQUIRED,
+        alternative=NOT_REQUIRED,
+        target_models=[f'{app_label}.childhivrapidtestcounseling', ])
+
     class Meta:
         app_label = app_label
         source_model = f'{app_label}.childvisit'
