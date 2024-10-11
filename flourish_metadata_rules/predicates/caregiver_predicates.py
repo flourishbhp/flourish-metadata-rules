@@ -25,6 +25,11 @@ class CaregiverPredicates(PredicateCollection):
     app_label = 'flourish_caregiver'
     pre_app_label = 'pre_flourish'
     visit_model = f'{app_label}.maternalvisit'
+    caregiver_cage_aid_model = f'{app_label}.caregivercageaid'
+
+    @property
+    def caregiver_cage_aid_model_cls(self):
+        return django_apps.get_model(self.caregiver_cage_aid_model)
 
     def func_hiv_positive(self, visit=None, **kwargs):
         """
@@ -566,14 +571,12 @@ class CaregiverPredicates(PredicateCollection):
     def func_caregiver_social_work_referral_required(self, visit=None, **kwargs):
         """Returns true if caregiver Social _work referral crf is required
         """
-        caregiver_cage_aid_model_cls = django_apps.get_model(
-            f'{self.app_label}.caregivercageaid')
         try:
-            cage_obj = caregiver_cage_aid_model_cls.objects.get(
+            cage_obj = self.caregiver_cage_aid_model_cls.objects.get(
                 maternal_visit=visit
             )
 
-        except caregiver_cage_aid_model_cls.DoesNotExist:
+        except self.caregiver_cage_aid_model_cls.DoesNotExist:
             pass
         else:
             return (
@@ -657,3 +660,18 @@ class CaregiverPredicates(PredicateCollection):
         is_valid_age = not 1 < child_age < 5 if child_age is not None else False
 
         return False if is_valid_age else is_follow_up
+
+    def func_cage_aid_required(self, visit, **kwargs):
+        """ If previous instance exists, should not be within a year of each other.
+        """
+        try:
+            prev_instance = self.caregiver_cage_aid_model_cls.objects.filter(
+                maternal_visit__subject_identifier=visit.subject_identifier,
+                maternal_visit__report_datetime__lt=visit.report_datetime).latest(
+                    'report_datetime')
+        except self.caregiver_cage_aid_model_cls.DoesNotExist:
+            return True
+        else:
+            prev_visit_dt = prev_instance.maternal_visit.report_datetime
+            date_diff = (visit.report_datetime - prev_visit_dt).days
+            return date_diff > 365
