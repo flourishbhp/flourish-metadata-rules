@@ -34,6 +34,7 @@ class ChildPredicates(PredicateCollection):
     infant_arv_proph_model = f'{app_label}.infantarvprophylaxis'
     relationship_father_involvement_model = (
         f'{maternal_app_label}.relationshipfatherinvolvement')
+    child_cage_aid_model = f'{app_label}.childcageaid'
 
     @property
     def tb_presence_model_cls(self):
@@ -78,6 +79,10 @@ class ChildPredicates(PredicateCollection):
     @property
     def relationship_father_involvement_model_cls(self):
         return django_apps.get_model(self.relationship_father_involvement_model)
+
+    @property
+    def child_cage_aid_model_cls(self):
+        return django_apps.get_model(self.child_cage_aid_model)
 
     def func_hiv_exposed(self, visit=None, **kwargs):
         """
@@ -639,15 +644,13 @@ class ChildPredicates(PredicateCollection):
                 return is_biological and self.func_hiv_exposed(visit)
 
     def func_child_social_work_referral_required(self, visit=None, **kwargs):
-        """Returns true if child Social _work referral crf is required
+        """ Returns true if child Social _work referral crf is required.
         """
-        child_cage_aid_model_cls = django_apps.get_model(
-            f'{self.app_label}.childcageaid')
         try:
-            cage_obj = child_cage_aid_model_cls.objects.get(
-                child_visit__subject_identifier=visit.subject_identifier
+            cage_obj = self.child_cage_aid_model_cls.objects.get(
+                child_visit=visit
             )
-        except child_cage_aid_model_cls.DoesNotExist:
+        except self.child_cage_aid_model_cls.DoesNotExist:
             pass
         else:
             return (
@@ -756,3 +759,22 @@ class ChildPredicates(PredicateCollection):
         latest_test = prev_tests.latest('result_date')
         return (
             visit.report_datetime.date() - latest_test.result_date).days > 90
+
+    def func_cage_aid_required(self, visit, **kwargs):
+        """ Required if child is 15 years or older, and if previous
+            instance exists, should not be within a year of each other.
+        """
+        gte_15years = self.func_15_years_older(visit)
+        try:
+            prev_instance = self.child_cage_aid_model_cls.objects.filter(
+                child_visit__subject_identifier=visit.subject_identifier,
+                child_visit__report_datetime__lt=visit.report_datetime).latest(
+                    'report_datetime')
+        except self.child_cage_aid_model_cls.DoesNotExist:
+            return gte_15years
+        else:
+            prev_visit_dt = prev_instance.child_visit.report_datetime
+            date_diff = (visit.report_datetime - prev_visit_dt).days
+            if date_diff < 365:
+                return False
+            return gte_15years
