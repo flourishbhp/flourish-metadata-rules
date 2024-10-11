@@ -661,17 +661,29 @@ class CaregiverPredicates(PredicateCollection):
 
         return False if is_valid_age else is_follow_up
 
-    def func_cage_aid_required(self, visit, **kwargs):
+    def func_crf_required_annually(self, model_cls, visit):
         """ If previous instance exists, should not be within a year of each other.
         """
         try:
-            prev_instance = self.caregiver_cage_aid_model_cls.objects.filter(
+            prev_instance = model_cls.objects.filter(
                 maternal_visit__subject_identifier=visit.subject_identifier,
-                maternal_visit__report_datetime__lt=visit.report_datetime).latest(
+                maternal_visit__report_datetime__lt=visit.report_datetime,
+                maternal_visit__visit_schedule_name=visit.visit_schedule_name).latest(
                     'report_datetime')
-        except self.caregiver_cage_aid_model_cls.DoesNotExist:
+        except model_cls.DoesNotExist:
             return True
         else:
             prev_visit_dt = prev_instance.maternal_visit.report_datetime
             date_diff = (visit.report_datetime - prev_visit_dt).days
             return date_diff > 365
+
+    def func_cage_aid_required(self, visit, **kwargs):
+        """ If previous instance exists, should not be within a year of each other.
+        """
+        model_cls = self.caregiver_cage_aid_model_cls
+        return self.func_crf_required_annually(model_cls, visit)
+
+    def func_safi_stigma_required(self, visit, **kwargs):
+        model_cls = django_apps.get_model(
+            f'{self.app_label}.caregiversafistigma')
+        return self.func_crf_required_annually(model_cls, visit)
