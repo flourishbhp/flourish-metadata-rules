@@ -26,10 +26,15 @@ class CaregiverPredicates(PredicateCollection):
     pre_app_label = 'pre_flourish'
     visit_model = f'{app_label}.maternalvisit'
     caregiver_cage_aid_model = f'{app_label}.caregivercageaid'
+    caregiver_tb_screening_model = f'{app_label}.caregivertbscreening'
 
     @property
     def caregiver_cage_aid_model_cls(self):
         return django_apps.get_model(self.caregiver_cage_aid_model)
+
+    @property
+    def caregiver_tb_screening_model_cls(self):
+        return django_apps.get_model(self.caregiver_tb_screening_model)
 
     def func_hiv_positive(self, visit=None, **kwargs):
         """
@@ -540,33 +545,58 @@ class CaregiverPredicates(PredicateCollection):
     def func_caregiver_tb_referral_outcome(self, visit=None, **kwargs):
         """Returns true if caregiver TB referral outcome crf is required
         """
-        prev_caregiver_tb_referral_objs = Reference.objects.filter(
-            model=f'{self.app_label}.tbreferralcaregiver',
-            report_datetime__lt=visit.report_datetime,
-            identifier=visit.subject_identifier, )
-        prev_caregiver_tb_referral_outcome_objs = Reference.objects.filter(
-            model=f'{self.app_label}.caregivertbreferraloutcome',
-            report_datetime__lt=visit.report_datetime,
-            identifier=visit.subject_identifier, )
+        caregiver_referral_model_cls = django_apps.get_model(
+            f'{self.app_label}.tbreferralcaregiver')
+        caregiver_referral_outcoume_cls = django_apps.get_model(
+            f'{self.app_label}.caregivertbreferraloutcome')
+        schedule_names = get_schedule_names(visit.appointment)
 
-        if prev_caregiver_tb_referral_objs.exists():
-            return prev_caregiver_tb_referral_objs.count() > \
-                prev_caregiver_tb_referral_outcome_objs.count()
-        return False
-
-    def func_caregiver_tb_referral_required(self, visit=None, **kwargs):
-        """Returns true if caregiver TB referral crf is required
-        """
-        caregiver_tb_screening_model_cls = django_apps.get_model(
-            f'{self.app_label}.caregivertbscreening')
         try:
-            visit_obj = caregiver_tb_screening_model_cls.objects.get(
-                maternal_visit=visit
-            )
-        except caregiver_tb_screening_model_cls.DoesNotExist:
+            prev_referral = caregiver_referral_model_cls.objects.filter(
+                maternal_visit__subject_identifier=visit.subject_identifier,
+                maternal_visit__schedule_name__in=schedule_names,
+                report_datetime__lt=visit.report_datetime).latest(
+                    'report_datetime')
+        except caregiver_referral_model_cls.DoesNotExist:
             return False
         else:
-            return visit_obj.tb_diagnoses
+            outcome_exists = caregiver_referral_outcoume_cls.objects.filter(
+                maternal_visit__subject_identifier=visit.subject_identifier,
+                maternal_visit__schedule_name__in=schedule_names,
+                report_datetime__gte=prev_referral.report_datetime).exists()
+            return not outcome_exists
+
+    def func_caregiver_tb_referral_required(self, visit=None, **kwargs):
+        """ Returns true if caregiver has a household contact or if previous
+            instance of CRF exists and caregiver symptoms still persist.
+        """
+        try:
+            instance = self.caregiver_tb_screening_model_cls.objects.get(
+                maternal_visit=visit
+            )
+        except self.caregiver_tb_screening_model_cls.DoesNotExist:
+            return False
+        else:
+            unscheduled = visit.visit_code_sequence > 0
+            persistent = unscheduled and instance.symptomatic
+            return instance.tb_diagnoses or persistent
+
+    def func_tb_screening_required(self, visit=None, **kwargs):
+        """ Required at all quarterly calls, and if unscheduled 2 week call
+            required if symptomatic.
+        """
+        schedule_names = get_schedule_names(visit.appointment)
+        unscheduled = visit.visit_code_sequence > 0
+        prev_instance = self.caregiver_tb_screening_model_cls.objects.filter(
+            maternal_visit__subject_identifier=visit.subject_identifier,
+            maternal_visit__schedule_name__in=schedule_names,
+            maternal_visit__visit_code=visit.visit_code,
+            maternal_visit__visit_code_sequence=0, )
+        if unscheduled:
+            return (prev_instance.count() > 0
+                    and prev_instance[0].symptomatic)
+        else:
+            return True
 
     def func_caregiver_social_work_referral_required(self, visit=None, **kwargs):
         """Returns true if caregiver Social _work referral crf is required
