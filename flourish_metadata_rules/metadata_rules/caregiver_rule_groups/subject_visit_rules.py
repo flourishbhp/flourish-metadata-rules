@@ -141,6 +141,12 @@ class MaternalVisitRuleGroup(CrfRuleGroup):
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.caregivertbreferraloutcome', ])
 
+    caregiver_tb_screening = CrfRule(
+        predicate=pc.func_tb_screening_required,
+        consequence=REQUIRED,
+        alternative=NOT_REQUIRED,
+        target_models=[f'{app_label}.caregivertbscreening', ])
+
     breast_milk_crf = CrfRule(
         predicate=pc.func_show_breast_milk_crf,
         consequence=REQUIRED,
