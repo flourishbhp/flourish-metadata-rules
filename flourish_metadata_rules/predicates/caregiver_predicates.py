@@ -375,7 +375,6 @@ class CaregiverPredicates(PredicateCollection):
             self, visit=None, maternal_status_helper=None, **kwargs
     ):
         subject_identifier = visit.subject_identifier
-        result_date = None
 
         maternal_status_helper = maternal_status_helper or MaternalStatusHelper(
             visit)
@@ -391,22 +390,21 @@ class CaregiverPredicates(PredicateCollection):
                         and not self.currently_pregnant(visit=visit)):
                     return True
                 else:
-                    prev_rapid_test = Reference.objects.filter(
-                        model=f'{self.app_label}.hivrapidtestcounseling',
-                        report_datetime__lt=visit.report_datetime,
-                        identifier=subject_identifier).order_by(
-                        '-report_datetime').last()
+                    rapid_result_cls = django_apps.get_model(
+                        f'{self.app_label}.hivrapidtestcounseling')
+                    try:
+                        latest_test = rapid_result_cls.objects.filter(
+                            maternal_visit__subject_identifier=subject_identifier,
+                            rapid_test_done=YES,
+                            report_datetime__lt=visit.report_datetime).latest(
+                                'report_datetime')
+                    except rapid_result_cls.DoesNotExist:
+                        pass
+                    else:
+                        result_date = latest_test.result_date
+                        return result_date and (
+                            visit.report_datetime.date() - result_date).days > 90
 
-                    if prev_rapid_test and bio_mother:
-                        result_date = self.exists(
-                            reference_name=f'{self.app_label}.hivrapidtestcounseling',
-                            subject_identifier=visit.subject_identifier,
-                            report_datetime=prev_rapid_test.report_datetime,
-                            field_name='result_date')
-
-                        if result_date and isinstance(result_date[0], date):
-                            return (visit.report_datetime.date() - result_date[
-                                0]).days > 90
         return False
 
     def func_tb_eligible(self, visit=None, maternal_status_helper=None, **kwargs):
