@@ -365,19 +365,37 @@ class CaregiverPredicates(PredicateCollection):
                                                              maternal_status_helper,
                                                              ['-36', ])
 
-    def func_check_prev_hiv_test(self, visit):
-        rapid_result_cls = django_apps.get_model(
-            f'{self.app_label}.hivrapidtestcounseling')
+    def func_check_prev_post_hiv_test(self, visit):
+        post_rapid_result_cls = django_apps.get_model(
+            f'{self.app_label}.posthivrapidtestandconseling')
+
         try:
-            latest_test = rapid_result_cls.objects.filter(
+            latest_test = post_rapid_result_cls.objects.filter(
                 maternal_visit__subject_identifier=visit.subject_identifier,
                 rapid_test_done=YES,
                 report_datetime__lt=visit.report_datetime).latest(
-                    'report_datetime')
-        except rapid_result_cls.DoesNotExist:
+                    'result_date')
+        except post_rapid_result_cls.DoesNotExist:
             return None
         else:
             return latest_test
+
+    def func_check_prev_hiv_test(self, visit):
+        rapid_result_cls = django_apps.get_model(
+            f'{self.app_label}.hivrapidtestcounseling')
+
+        latest_test = self.func_check_prev_post_hiv_test(visit)
+        if not latest_test:
+            try:
+                latest_test = rapid_result_cls.objects.filter(
+                    maternal_visit__subject_identifier=visit.subject_identifier,
+                    rapid_test_done=YES,
+                    report_datetime__lt=visit.report_datetime).latest(
+                        'result_date')
+            except rapid_result_cls.DoesNotExist:
+                return None
+
+        return latest_test
 
     def func_post_hiv_rapid_test(self, visit, **kwargs):
         maternal_helper = MaternalStatusHelper(maternal_visit=visit)
