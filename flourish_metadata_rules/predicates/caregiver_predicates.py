@@ -348,16 +348,35 @@ class CaregiverPredicates(PredicateCollection):
                                                              maternal_status_helper,
                                                              ['-36', ])
 
+    def func_check_prev_hiv_test(self, visit):
+        rapid_result_cls = django_apps.get_model(
+            f'{self.app_label}.hivrapidtestcounseling')
+        try:
+            latest_test = rapid_result_cls.objects.filter(
+                maternal_visit__subject_identifier=visit.subject_identifier,
+                rapid_test_done=YES,
+                report_datetime__lt=visit.report_datetime).latest(
+                    'report_datetime')
+        except rapid_result_cls.DoesNotExist:
+            return None
+        else:
+            return latest_test
+
     def func_post_hiv_rapid_test(self, visit, **kwargs):
         maternal_helper = MaternalStatusHelper(maternal_visit=visit)
 
-        return maternal_helper.hiv_status in [NEG, IND, UNK] and self.func_bio_mother(
-            visit=visit)
+        latest_test = self.func_check_prev_hiv_test(visit)
+
+        neg_mother = (maternal_helper.hiv_status in [NEG, IND, UNK] and
+                      self.func_bio_mother(visit=visit))
+        if latest_test:
+            result_date = getattr(latest_test, 'result_date', None)
+            return neg_mother and (
+                visit.report_datetime.date() - result_date).days > 90
+        return neg_mother
 
     def func_show_hiv_test_form(
-            self, visit=None, maternal_status_helper=None, **kwargs
-    ):
-        subject_identifier = visit.subject_identifier
+            self, visit=None, maternal_status_helper=None, **kwargs):
 
         maternal_status_helper = maternal_status_helper or MaternalStatusHelper(
             visit)
@@ -373,20 +392,10 @@ class CaregiverPredicates(PredicateCollection):
                         and not self.currently_pregnant(visit=visit)):
                     return True
                 else:
-                    rapid_result_cls = django_apps.get_model(
-                        f'{self.app_label}.hivrapidtestcounseling')
-                    try:
-                        latest_test = rapid_result_cls.objects.filter(
-                            maternal_visit__subject_identifier=subject_identifier,
-                            rapid_test_done=YES,
-                            report_datetime__lt=visit.report_datetime).latest(
-                                'report_datetime')
-                    except rapid_result_cls.DoesNotExist:
-                        pass
-                    else:
-                        result_date = latest_test.result_date
-                        return result_date and (
-                            visit.report_datetime.date() - result_date).days > 90
+                    latest_test = self.func_check_prev_hiv_test(visit)
+                    result_date = getattr(latest_test, 'result_date', None)
+                    return result_date and (
+                        visit.report_datetime.date() - result_date).days > 90
 
         return False
 
