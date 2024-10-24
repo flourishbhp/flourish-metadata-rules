@@ -753,7 +753,8 @@ class ChildPredicates(PredicateCollection):
 
     def func_rapid_hiv_testing_required(self, visit, **kwargs):
         prev_tests = self.rapid_hiv_test_model_cls.objects.filter(
-            child_visit__subject_identifier=visit.subject_identifier)
+            child_visit__subject_identifier=visit.subject_identifier,
+            rapid_test_done=YES)
         if not prev_tests.exists():
             return True
         latest_test = prev_tests.latest('result_date')
