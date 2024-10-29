@@ -162,6 +162,18 @@ class MaternalVisitRuleGroup(CrfRuleGroup):
         target_models=[f'{app_label}.childhoodleadexposurerisk', ]
     )
 
+    cage_aid_annual = CrfRule(
+        predicate=pc.func_cage_aid_required,
+        consequence=REQUIRED,
+        alternative=NOT_REQUIRED,
+        target_models=[f'{app_label}.caregivercageaid', ])
+
+    caregiver_safi_annual = CrfRule(
+        predicate=pc.func_safi_stigma_required,
+        consequence=REQUIRED,
+        alternative=NOT_REQUIRED,
+        target_models=[f'{app_label}.caregiversafistigma', ])
+
     class Meta:
         app_label = app_label
         source_model = f'{app_label}.maternalvisit'

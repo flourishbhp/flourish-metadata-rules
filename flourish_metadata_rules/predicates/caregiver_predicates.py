@@ -25,6 +25,11 @@ class CaregiverPredicates(PredicateCollection):
     app_label = 'flourish_caregiver'
     pre_app_label = 'pre_flourish'
     visit_model = f'{app_label}.maternalvisit'
+    caregiver_cage_aid_model = f'{app_label}.caregivercageaid'
+
+    @property
+    def caregiver_cage_aid_model_cls(self):
+        return django_apps.get_model(self.caregiver_cage_aid_model)
 
     def func_hiv_positive(self, visit=None, **kwargs):
         """
@@ -360,17 +365,53 @@ class CaregiverPredicates(PredicateCollection):
                                                              maternal_status_helper,
                                                              ['-36', ])
 
+    def func_check_prev_post_hiv_test(self, visit):
+        post_rapid_result_cls = django_apps.get_model(
+            f'{self.app_label}.posthivrapidtestandconseling')
+
+        try:
+            latest_test = post_rapid_result_cls.objects.filter(
+                maternal_visit__subject_identifier=visit.subject_identifier,
+                rapid_test_done=YES,
+                report_datetime__lt=visit.report_datetime).latest(
+                    'result_date')
+        except post_rapid_result_cls.DoesNotExist:
+            return None
+        else:
+            return latest_test
+
+    def func_check_prev_hiv_test(self, visit):
+        rapid_result_cls = django_apps.get_model(
+            f'{self.app_label}.hivrapidtestcounseling')
+
+        latest_test = self.func_check_prev_post_hiv_test(visit)
+        if not latest_test:
+            try:
+                latest_test = rapid_result_cls.objects.filter(
+                    maternal_visit__subject_identifier=visit.subject_identifier,
+                    rapid_test_done=YES,
+                    report_datetime__lt=visit.report_datetime).latest(
+                        'result_date')
+            except rapid_result_cls.DoesNotExist:
+                return None
+
+        return latest_test
+
     def func_post_hiv_rapid_test(self, visit, **kwargs):
         maternal_helper = MaternalStatusHelper(maternal_visit=visit)
 
-        return maternal_helper.hiv_status in [NEG, IND, UNK] and self.func_bio_mother(
-            visit=visit)
+        latest_test = self.func_check_prev_hiv_test(visit)
+
+        neg_mother = (maternal_helper.hiv_status in [NEG, IND, UNK] and
+                      self.func_bio_mother(visit=visit))
+        if latest_test:
+            result_date = getattr(latest_test, 'result_date', None)
+            return neg_mother and (
+                visit.report_datetime.date() - result_date).days > 90
+        return neg_mother
 
     def func_show_hiv_test_form(
-            self, visit=None, maternal_status_helper=None, **kwargs
-    ):
-        subject_identifier = visit.subject_identifier
-        result_date = None
+            self, visit=None, maternal_status_helper=None, **kwargs):
 
         maternal_status_helper = maternal_status_helper or MaternalStatusHelper(
             visit)
@@ -386,22 +427,11 @@ class CaregiverPredicates(PredicateCollection):
                         and not self.currently_pregnant(visit=visit)):
                     return True
                 else:
-                    prev_rapid_test = Reference.objects.filter(
-                        model=f'{self.app_label}.hivrapidtestcounseling',
-                        report_datetime__lt=visit.report_datetime,
-                        identifier=subject_identifier).order_by(
-                        '-report_datetime').last()
+                    latest_test = self.func_check_prev_hiv_test(visit)
+                    result_date = getattr(latest_test, 'result_date', None)
+                    return result_date and (
+                        visit.report_datetime.date() - result_date).days > 90
 
-                    if prev_rapid_test and bio_mother:
-                        result_date = self.exists(
-                            reference_name=f'{self.app_label}.hivrapidtestcounseling',
-                            subject_identifier=visit.subject_identifier,
-                            report_datetime=prev_rapid_test.report_datetime,
-                            field_name='result_date')
-
-                        if result_date and isinstance(result_date[0], date):
-                            return (visit.report_datetime.date() - result_date[
-                                0]).days > 90
         return False
 
     def func_tb_eligible(self, visit=None, maternal_status_helper=None, **kwargs):
@@ -604,14 +634,12 @@ class CaregiverPredicates(PredicateCollection):
     def func_caregiver_social_work_referral_required(self, visit=None, **kwargs):
         """Returns true if caregiver Social _work referral crf is required
         """
-        caregiver_cage_aid_model_cls = django_apps.get_model(
-            f'{self.app_label}.caregivercageaid')
         try:
-            cage_obj = caregiver_cage_aid_model_cls.objects.get(
+            cage_obj = self.caregiver_cage_aid_model_cls.objects.get(
                 maternal_visit=visit
             )
 
-        except caregiver_cage_aid_model_cls.DoesNotExist:
+        except self.caregiver_cage_aid_model_cls.DoesNotExist:
             pass
         else:
             return (
@@ -693,3 +721,30 @@ class CaregiverPredicates(PredicateCollection):
         is_valid_age = not 1 < child_age < 5 if child_age is not None else False
 
         return False if is_valid_age else is_follow_up
+
+    def func_crf_required_annually(self, model_cls, visit):
+        """ If previous instance exists, should not be within a year of each other.
+        """
+        try:
+            prev_instance = model_cls.objects.filter(
+                maternal_visit__subject_identifier=visit.subject_identifier,
+                maternal_visit__report_datetime__lt=visit.report_datetime,
+                maternal_visit__visit_schedule_name=visit.visit_schedule_name).latest(
+                    'report_datetime')
+        except model_cls.DoesNotExist:
+            return True
+        else:
+            prev_visit_dt = prev_instance.maternal_visit.report_datetime
+            date_diff = (visit.report_datetime - prev_visit_dt).days
+            return date_diff > 365
+
+    def func_cage_aid_required(self, visit, **kwargs):
+        """ If previous instance exists, should not be within a year of each other.
+        """
+        model_cls = self.caregiver_cage_aid_model_cls
+        return self.func_crf_required_annually(model_cls, visit)
+
+    def func_safi_stigma_required(self, visit, **kwargs):
+        model_cls = django_apps.get_model(
+            f'{self.app_label}.caregiversafistigma')
+        return self.func_crf_required_annually(model_cls, visit)
