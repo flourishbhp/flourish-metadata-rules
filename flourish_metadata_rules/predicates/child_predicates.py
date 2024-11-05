@@ -20,6 +20,7 @@ class ChildPredicates(PredicateCollection):
     app_label = 'flourish_child'
     pre_app_label = 'pre_flourish'
     maternal_app_label = 'flourish_caregiver'
+    prn_app_label = 'flourish_prn'
     visit_model = f'{app_label}.childvisit'
     maternal_visit_model = 'flourish_caregiver.maternalvisit'
 
@@ -36,6 +37,7 @@ class ChildPredicates(PredicateCollection):
         f'{maternal_app_label}.relationshipfatherinvolvement')
     child_cage_aid_model = f'{app_label}.childcageaid'
     child_tb_screening_model = f'{app_label}.childtbscreening'
+    missed_birth_visit_model = f'{prn_app_label}.missedbirthvisit'
 
     @property
     def tb_presence_model_cls(self):
@@ -88,6 +90,10 @@ class ChildPredicates(PredicateCollection):
     @property
     def child_tb_screening_model_cls(self):
         return django_apps.get_model(self.child_tb_screening_model)
+
+    @property
+    def missed_birth_visit_model_cls(self):
+        return django_apps.get_model(self.missed_birth_visit_model)
 
     def func_hiv_exposed(self, visit=None, **kwargs):
         """
@@ -240,7 +246,11 @@ class ChildPredicates(PredicateCollection):
         bith_data_model = f'{self.app_label}.birthdata'
         prev_bith_data_obj = self.previous_model(
             visit=visit, model=bith_data_model)
-        return self.func_consent_study_pregnant(visit=visit) and not prev_bith_data_obj
+        missed_visit_exists = self.missed_birth_visit_model_cls.objects.filter(
+            subject_identifier=visit.subject_identifier).exists()
+
+        return (self.func_consent_study_pregnant(visit=visit)
+                and not prev_bith_data_obj and not missed_visit_exists)
 
     def func_mother_preg_pos(self, visit=None, **kwargs):
         """ Returns True if participant's mother consented to the study in
