@@ -706,7 +706,7 @@ class CaregiverPredicates(PredicateCollection):
         """
         child_subject_identifier = get_child_subject_identifier_by_visit(visit)
 
-        if self.enrolled_pregnant(visit=visit, **kwargs) and self.func_hiv_positive(visit):
+        if self.enrolled_pregnant(visit=visit, **kwargs):
             birth_form_model_cls = django_apps.get_model(
                 f'{self.app_label}.maternaldelivery')
             try:
