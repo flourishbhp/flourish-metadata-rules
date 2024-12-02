@@ -335,38 +335,50 @@ class CaregiverPredicates(PredicateCollection):
         return False
 
     def func_LWHIV_aged_10_15a(self, visit=None, maternal_status_helper=None, **kwargs):
+       
+        hivdisclosurestatusa_model_cls = django_apps.get_model(
+            f'{self.app_label}.hivdisclosurestatusa')
 
-        values = self.exists(
-            reference_name=f'{self.app_label}.hivdisclosurestatusa',
-            subject_identifier=visit.subject_identifier,
-            field_name='disclosed_status',
-            value=YES)
+        _, child_subject_identifier = self.child_gt10(visit)
 
-        return len(values) == 0 and self.child_gt10_eligible(
+        values = hivdisclosurestatusa_model_cls.objects.filter(
+            associated_child_identifier=child_subject_identifier,
+            disclosed_status = YES
+        ).exists()
+
+        return not values and self.child_gt10_eligible(
             visit, maternal_status_helper,
             ['-10', '-60', '-70', '-80', '-25', '-36'])
 
     def func_LWHIV_aged_10_15b(self, visit=None, maternal_status_helper=None, **kwargs):
 
-        values = self.exists(
-            reference_name=f'{self.app_label}.hivdisclosurestatusb',
-            subject_identifier=visit.subject_identifier,
-            field_name='disclosed_status',
-            value=YES)
+        hivdisclosurestatusb_model_cls = django_apps.get_model(
+            f'{self.app_label}.hivdisclosurestatusb')
 
-        return len(values) == 0 and self.child_gt10_eligible(visit,
+        _, child_subject_identifier = self.child_gt10(visit)
+
+        values = hivdisclosurestatusb_model_cls.objects.filter(
+            associated_child_identifier=child_subject_identifier,
+            disclosed_status = YES
+        ).exists()
+
+        return not values and self.child_gt10_eligible(visit,
                                                              maternal_status_helper,
                                                              ['-25', ])
 
     def func_LWHIV_aged_10_15c(self, visit=None, maternal_status_helper=None, **kwargs):
 
-        values = self.exists(
-            reference_name=f'{self.app_label}.hivdisclosurestatusc',
-            subject_identifier=visit.subject_identifier,
-            field_name='disclosed_status',
-            value=YES)
+        hivdisclosurestatusc_model_cls = django_apps.get_model(
+            f'{self.app_label}.hivdisclosurestatusc')
 
-        return len(values) == 0 and self.child_gt10_eligible(visit,
+        _, child_subject_identifier = self.child_gt10(visit)
+
+        values = hivdisclosurestatusc_model_cls.objects.filter(
+            associated_child_identifier=child_subject_identifier,
+            disclosed_status = YES
+        ).exists()
+
+        return not values and self.child_gt10_eligible(visit,
                                                              maternal_status_helper,
                                                              ['-36', ])
 
@@ -706,7 +718,7 @@ class CaregiverPredicates(PredicateCollection):
         """
         child_subject_identifier = get_child_subject_identifier_by_visit(visit)
 
-        if self.enrolled_pregnant(visit=visit, **kwargs) and self.func_hiv_positive(visit):
+        if self.enrolled_pregnant(visit=visit, **kwargs):
             birth_form_model_cls = django_apps.get_model(
                 f'{self.app_label}.maternaldelivery')
             try:
