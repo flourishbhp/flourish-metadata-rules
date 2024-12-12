@@ -672,7 +672,7 @@ class CaregiverPredicates(PredicateCollection):
             maternal_visit__visit_code_sequence=0, )
         if unscheduled:
             return (prev_instance.count() > 0
-                    and prev_instance[0].symptomatic and 'tb' in (visit.reason_unscheduled or None).casefold())
+                    and prev_instance[0].symptomatic and visit.reason_unscheduled == '2_weeks_tb_sec_screening')
         else:
             return True
 
