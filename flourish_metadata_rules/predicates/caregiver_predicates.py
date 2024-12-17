@@ -7,7 +7,7 @@ from edc_base.utils import age, get_utcnow
 from edc_constants.constants import IND, NEG, POS, UNK, YES
 from edc_metadata_rules import PredicateCollection
 from edc_reference.models import Reference
-
+from edc_visit_tracking.constants import UNSCHEDULED
 from flourish_caregiver.constants import BREASTFEED_ONLY
 from flourish_caregiver.helper_classes import MaternalStatusHelper
 from flourish_caregiver.helper_classes.utils import (
@@ -582,6 +582,9 @@ class CaregiverPredicates(PredicateCollection):
     def func_caregiver_tb_referral_outcome(self, visit=None, **kwargs):
         """Returns true if caregiver TB referral outcome crf is required
         """
+        if visit.reason == UNSCHEDULED:
+            return False
+
         caregiver_referral_model_cls = django_apps.get_model(
             f'{self.app_label}.tbreferralcaregiver')
         caregiver_referral_outcoume_cls = django_apps.get_model(
@@ -631,7 +634,7 @@ class CaregiverPredicates(PredicateCollection):
             maternal_visit__visit_code_sequence=0, )
         if unscheduled:
             return (prev_instance.count() > 0
-                    and prev_instance[0].symptomatic)
+                    and prev_instance[0].symptomatic and visit.reason_unscheduled == '2_weeks_tb_sec_screening')
         else:
             return True
 
