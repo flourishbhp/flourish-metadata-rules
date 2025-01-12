@@ -313,7 +313,7 @@ class CaregiverPredicates(PredicateCollection):
         return False
 
     def func_LWHIV_aged_10_15a(self, visit=None, maternal_status_helper=None, **kwargs):
-       
+
         hivdisclosurestatusa_model_cls = django_apps.get_model(
             f'{self.app_label}.hivdisclosurestatusa')
 
@@ -321,7 +321,7 @@ class CaregiverPredicates(PredicateCollection):
 
         values = hivdisclosurestatusa_model_cls.objects.filter(
             associated_child_identifier=child_subject_identifier,
-            disclosed_status = YES
+            disclosed_status=YES
         ).exists()
 
         return not values and self.child_gt10_eligible(
@@ -337,7 +337,7 @@ class CaregiverPredicates(PredicateCollection):
 
         values = hivdisclosurestatusb_model_cls.objects.filter(
             associated_child_identifier=child_subject_identifier,
-            disclosed_status = YES
+            disclosed_status=YES
         ).exists()
 
         return not values and self.child_gt10_eligible(visit,
@@ -353,7 +353,7 @@ class CaregiverPredicates(PredicateCollection):
 
         values = hivdisclosurestatusc_model_cls.objects.filter(
             associated_child_identifier=child_subject_identifier,
-            disclosed_status = YES
+            disclosed_status=YES
         ).exists()
 
         return not values and self.child_gt10_eligible(visit,
