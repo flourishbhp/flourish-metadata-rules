@@ -132,7 +132,7 @@ class CaregiverPredicates(PredicateCollection):
         child_age = self.get_child_age(child_subject_identifier, visit)
         if child_age:
             child_age = float(f'{child_age.years}.{child_age.months}')
-            if 15.9 >= child_age >= 10:
+            if child_age >= 10:
                 return [True, child_subject_identifier]
         return [False, child_subject_identifier]
 
@@ -340,9 +340,8 @@ class CaregiverPredicates(PredicateCollection):
             disclosed_status=YES
         ).exists()
 
-        return not values and self.child_gt10_eligible(visit,
-                                                             maternal_status_helper,
-                                                             ['-25', ])
+        return not values and self.child_gt10_eligible(
+            visit, maternal_status_helper, ['-25', ])
 
     def func_LWHIV_aged_10_15c(self, visit=None, maternal_status_helper=None, **kwargs):
 
@@ -356,9 +355,8 @@ class CaregiverPredicates(PredicateCollection):
             disclosed_status=YES
         ).exists()
 
-        return not values and self.child_gt10_eligible(visit,
-                                                             maternal_status_helper,
-                                                             ['-36', ])
+        return not values and self.child_gt10_eligible(
+            visit, maternal_status_helper, ['-36', ])
 
     def func_check_prev_post_hiv_test(self, visit):
         post_rapid_result_cls = django_apps.get_model(
