@@ -37,6 +37,7 @@ class ChildPredicates(PredicateCollection):
     child_cage_aid_model = f'{app_label}.childcageaid'
     child_tb_screening_model = f'{app_label}.childtbscreening'
     missed_birth_visit_model = f'{prn_app_label}.missedbirthvisit'
+    child_cohort_model = f'{maternal_app_label}.cohort'
 
     @property
     def tb_presence_model_cls(self):
@@ -93,6 +94,18 @@ class ChildPredicates(PredicateCollection):
     @property
     def missed_birth_visit_model_cls(self):
         return django_apps.get_model(self.missed_birth_visit_model)
+
+    @property
+    def child_cohort_model_cls(self):
+        return django_apps.get_model(self.child_cohort_model)
+
+    def check_cohort_c_huu(self, subject_identifier):
+        is_cohort_c_huu = self.child_cohort_model_cls.objects.filter(
+            subject_identifier=subject_identifier,
+            name='cohort_c',
+            current_cohort=True,
+            exposure_status='UNEXPOSED').exists()
+        return is_cohort_c_huu
 
     def func_hiv_exposed(self, visit=None, **kwargs):
         """
@@ -322,25 +335,52 @@ class ChildPredicates(PredicateCollection):
             return False
 
     def func_cbcl_required(self, visit=None, **kwargs):
+        """ CRF required if has not been previously captured, and child
+            is 6 years or older.
+            If cohort C and HUU participant, CRF is not required.
+        """
         childcbcl_model = f'{self.app_label}.childcbclsection1'
+        cohort_c_huu = self.check_cohort_c_huu(visit.subject_identifier)
+        if cohort_c_huu:
+            return False
         prev_instance = self.previous_model(
             visit=visit, model=childcbcl_model)
         return (not prev_instance and self.func_6_years_older(visit=visit))
 
     def func_brief2_self_required(self, visit=None, **kwargs):
+        """ CRF required if has not been previously captured, and child
+            is 11 years or older.
+            If cohort C and HUU participant, CRF is not required.
+        """
         brief2self_model = f'{self.app_label}.brief2selfreported'
+        cohort_c_huu = self.check_cohort_c_huu(visit.subject_identifier)
+        if cohort_c_huu:
+            return False
         prev_instance = self.previous_model(
             visit=visit, model=brief2self_model)
         return (not prev_instance and self.func_11_years_older(visit=visit))
 
     def func_penncnb_required(self, visit=None, **kwargs):
+        """ CRF required if has not been previously captured, and child
+            is 7 years or older.
+            If cohort C and HUU participant, CRF is not required.
+        """
         penncnb_model = f'{self.app_label}.childpenncnb'
+        cohort_c_huu = self.check_cohort_c_huu(visit.subject_identifier)
+        if cohort_c_huu:
+            return False
         prev_instance = self.previous_model(
             visit=visit, model=penncnb_model)
         return (not prev_instance and self.func_7_years_older(visit=visit))
 
     def func_brief2_parent_required(self, visit=None, **kwargs):
+        """ CRF required if has not been previously captured.
+            If cohort C and HUU participant, CRF is not required.
+        """
         brief2parent_model = f'{self.app_label}.brief2parent'
+        cohort_c_huu = self.check_cohort_c_huu(visit.subject_identifier)
+        if cohort_c_huu:
+            return False
         prev_instance = self.previous_model(
             visit=visit, model=brief2parent_model)
         return not prev_instance
