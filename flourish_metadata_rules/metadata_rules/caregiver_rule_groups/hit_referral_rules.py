@@ -7,15 +7,14 @@ pc = CaregiverPredicates()
 
 
 @register()
-class HitsScreeningRuleGroup(CrfRuleGroup):
+class HITReferralRuleGroup(CrfRuleGroup):
 
-    brief_danger_assessment = CrfRule(
-        predicate=P('score', 'gte', 10),
+    hits_post_referral = CrfRule(
+        predicate=P('referred_to', '!=', 'declined'),
         consequence=REQUIRED,
         alternative=NOT_REQUIRED,
-        target_models=[f'{app_label}.briefdangerassessment',
-                       f'{app_label}.hitsreferral'])
+        target_models=[f'{app_label}.hitspostreferral'])
 
     class Meta:
         app_label = app_label
-        source_model = f'{app_label}.hitsscreening'
+        source_model = f'{app_label}.hitsreferral'
