@@ -229,6 +229,28 @@ class CaregiverPredicates(PredicateCollection):
             f'{self.app_label}.caregiveredinburghreferral')
         return self.requires_post_referral(edinburgh_referral_cls, visit)
 
+    def func_hit_post_referral_required(self, visit=None, **kwargs):
+        hit_referral_cls = django_apps.get_model(
+            f'{self.app_label}.hitsreferral')
+        hit_post_referral_cls = django_apps.get_model(
+            f'{self.app_label}.hitspostreferral')
+
+        while visit:
+            visit = getattr(visit, 'previous_visit', None)
+            try:
+                hit_referral_obj = hit_referral_cls.objects.exclude(
+                    referred_to='declined').get(
+                        maternal_visit=visit)
+            except hit_referral_cls.DoesNotExist:
+                continue
+            else:
+                referral_dt = hit_referral_obj.report_datetime.date()
+                post_referral_exists = hit_post_referral_cls.objects.filter(
+                    maternal_visit__subject_identifier=visit.subject_identifier,
+                    maternal_visit__visit_schedule_name=visit.visit_schedule_name,
+                    report_datetime__date__gt=referral_dt).exists()
+                return not post_referral_exists
+
     def func_caregiver_no_prior_participation(self, visit=None, **kwargs):
         """Returns true if participant is a caregiver and never participated in a BHP
         study.

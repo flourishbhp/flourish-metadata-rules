@@ -180,6 +180,12 @@ class MaternalVisitRuleGroup(CrfRuleGroup):
         alternative=NOT_REQUIRED,
         target_models=[f'{app_label}.caregiversafistigma', ])
 
+    hits_post_referral = CrfRule(
+        predicate=pc.func_hit_post_referral_required,
+        consequence=REQUIRED,
+        alternative=NOT_REQUIRED,
+        target_models=[f'{app_label}.hitspostreferral'])
+
     class Meta:
         app_label = app_label
         source_model = f'{app_label}.maternalvisit'
